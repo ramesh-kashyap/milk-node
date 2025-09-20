@@ -20,7 +20,7 @@ const { TronWeb } = require("tronweb");
 require('./cron/CronController');
 const TelegramBot = require("node-telegram-bot-api");
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(TOKEN, { polling: true });
+// const bot = new TelegramBot(TOKEN, { polling: false });
 
 // Initialize Express App
 const app = express();
@@ -103,32 +103,32 @@ initWebRouter(app);
 
 // /start
 
-bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    // Welcome message
-    const welcomeMessage =  `🚀 *Welcome to the HyperMesh Bot!*\n\n` +
-    `Easily connect to the HyperMesh network, participate in our airdrop program, and start earning rewards.\n\n` +
-    `💰 *Here's what you can do:*\n` +
-    `🎉 Claim exclusive airdrops\n` +
-    `🔗 Contribute node computing power\n` +
-    `🏆 Complete tasks & earn rewards\n` +
-    `🎯 Manage your HyperMesh Node effortlessly\n\n` +
-    `🔥 *Start your journey with HyperMesh  today!*`;
-    // Buttons with links
-    const options = {
-        parse_mode: "Markdown",
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "🚀 Start Mining", url: "https://t.me/hypermeshbot/mesh" }],
-                [{ text: "💬 Join Our Community", url: "https://t.me/MeshHyper" }],
+// bot.onText(/\/start/, (msg) => {
+//     const chatId = msg.chat.id;
+//     // Welcome message
+//     const welcomeMessage =  `🚀 *Welcome to the HyperMesh Bot!*\n\n` +
+//     `Easily connect to the HyperMesh network, participate in our airdrop program, and start earning rewards.\n\n` +
+//     `💰 *Here's what you can do:*\n` +
+//     `🎉 Claim exclusive airdrops\n` +
+//     `🔗 Contribute node computing power\n` +
+//     `🏆 Complete tasks & earn rewards\n` +
+//     `🎯 Manage your HyperMesh Node effortlessly\n\n` +
+//     `🔥 *Start your journey with HyperMesh  today!*`;
+//     // Buttons with links
+//     const options = {
+//         parse_mode: "Markdown",
+//         reply_markup: {
+//             inline_keyboard: [
+//                 [{ text: "🚀 Start Mining", url: "https://t.me/hypermeshbot/mesh" }],
+//                 [{ text: "💬 Join Our Community", url: "https://t.me/MeshHyper" }],
 
-            ]
-        }
-    };
+//             ]
+//         }
+//     };
 
-    // Send image with caption and buttons
-    bot.sendPhoto(chatId, "https://api.hypermesh.io/banner.png", { caption: welcomeMessage, ...options });
-});
+//     // Send image with caption and buttons
+//     bot.sendPhoto(chatId, "https://api.hypermesh.io/banner.png", { caption: welcomeMessage, ...options });
+// });
 
 
 

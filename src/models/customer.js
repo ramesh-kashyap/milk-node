@@ -18,6 +18,11 @@ module.exports = (sequelize) => {
       allowNull: false,
       defaultValue: 'No Alerts'
     },
+    active_status: {
+      type: DataTypes.ENUM('0', '1',),
+      allowNull: false,
+      defaultValue: 'No Alerts'
+    },
     printSlip: {
       type: DataTypes.ENUM('Default', 'Compact', 'Detailed', 'None'),
       allowNull: false,
@@ -29,4 +34,5 @@ module.exports = (sequelize) => {
   });
 
   return Customer;
+
 };

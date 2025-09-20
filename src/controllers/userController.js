@@ -1,15 +1,12 @@
 const sequelize = require('../config/connectDB'); // Import Sequelize connection
 const { QueryTypes ,Op } = require('sequelize');
 const bcrypt = require("bcryptjs");
-const { User,Customer } = require('../models');  // ✅ Correct way
+const { User,Customer,Payment } = require('../models');  // ✅ Correct way
 const { customerCreateSchema,customerListSchema } = require('../validators/customer.schema');
 
 const  getUserDetails = async (req, res) => {
   try {
-    // ✅ req.user is set in authMiddleware
     const user = req.user;
-
-    
 
     if (!user) {
       return res.status(200).json({
@@ -17,6 +14,7 @@ const  getUserDetails = async (req, res) => {
         message: "User not found",
       });
     }
+
 
     return res.status(200).json({
       status: true,
@@ -53,7 +51,6 @@ const  addCustomer = async (req, res) => {
       const user = req.user;
 
       const data = customerCreateSchema.parse(req.body);
-
        // pre-check (fast fail)
       const exists = await Customer.findOne({ where: { code: data.code } });
       if (exists) {
@@ -62,8 +59,6 @@ const  addCustomer = async (req, res) => {
           message: `Customer code ${data.code} already exists.`,
         });
       }
-
-
     // business rules: if enabled, value required
     if (data.buffalo.enabled && parseDecimalOrNull(data.buffalo.value) === null) {
        return res.status(200).json({
@@ -155,6 +150,131 @@ const getCustomerList = async (req, res) => {
   }
 };
 
+const getUseron = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(200).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    const customer = await Customer.findAll({
+      where: { user_id: user.id }
+    });
+
+    if (!customer) {
+      return res.status(200).json({
+        status: false,
+        message: "Customer not found"
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "User details fetched successfully",
+      customer
+    });
+  } catch (error) {
+    console.error("getUserDetails Error:", error.message);
+    return res.status(200).json({
+      status: false,
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+const onCustomer = async (req, res) => {
+  try {
+    const {id, active} = req.body;
+    const user = req.user;// will be 1 or 0
+    if (!user) {
+      return res.status(200).json({ status: false, message: "User not found" });
+    }
+    const [updated] = await Customer.update(
+      { active_status: active }, // change to { status_active: active } if your DB column is status_active
+      { where: { user_id: user.id , id : id} }
+    );
+
+    if (!updated) {
+      return res.status(200).json({
+        status: false,
+        message: "Customer not found or not updated",
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Customer status updated successfully",
+    });
+  } catch (error) {
+    console.error("onCustomer Error:", error.message);
+    return res.status(200).json({
+      status: false,
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+// const transection = async (req, res) => {
+//   try {
+//     const {id, active} = req.body;
+//     const user = req.user;// will be 1 or 0
+//     if (!user) {
+//       return res.status(200).json({ status: false, message: "User not found" });
+//     }
+//     const [updated] = await Customer.update(
+//       { active_status: active }, // change to { status_active: active } if your DB column is status_active
+//       { where: { user_id: user.id , id : id} }
+//     );
+
+//     if (!updated) {
+//       return res.status(200).json({
+//         status: false,
+//         message: "Customer not found or not updated",
+//       });
+//     }
+
+//     return res.status(200).json({
+//       status: true,
+//       message: "Customer status updated successfully",
+//     });
+//   } catch (error) {
+//     console.error("onCustomer Error:", error.message);
+//     return res.status(200).json({
+//       status: false,
+//       message: "Something went wrong",
+//       error: error.message,
+//     });
+//   }
+// };
+
+const userDetails = async (req, res) => {
+  console.log(req.body);
+  try {
+   const userId = req.user?.id;
+    // validate required fields
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Unauthrised" });
+    }
+    const userDe = await User.findOne({where: {id:userId} });
+    if(!userDe){
+      return res.status(200).json({success: false, message: "!No User Data Found"});
+    }
+    return res.status(201).json({
+      success: true,
+      message: "Dairy Details fetch Successfully",
+      data: userDe,
+    });
+  } catch (error) {
+    console.error("customerproducts error:", error);
+    return res.status(500).json({ success: false, message: "Fill All Details" });
+  }
+};
 
 
-module.exports = { getUserDetails,addCustomer,getCustomerList };
+module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails };
