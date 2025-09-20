@@ -16,15 +16,6 @@ module.exports = (sequelize) => {
     note: { type: DataTypes.STRING(180) }
   }, { tableName: 'milk_entries', underscored: true, timestamps: true });
 
-  // Guard: only sellers can have milk entries; also compute amount if not set
-  MilkEntry.beforeValidate(async (entry) => {
-    const Customer = sequelize.models.Customer;
-    const c = await Customer.findByPk(entry.customer_id, { attributes: ['id','type'] });
-    if (!c || c.type !== 'seller') throw new Error('Milk entry must belong to a seller customer');
-    if ((entry.rate ?? null) != null && (entry.litres ?? null) != null) {
-      entry.amount = Number(entry.rate) * Number(entry.litres);
-    }
-  });
 
   return MilkEntry;
 };

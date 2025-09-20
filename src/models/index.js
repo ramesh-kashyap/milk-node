@@ -10,6 +10,7 @@ const Invoice        = require('./invoice')(sequelize);
 const Product        = require('./product')(sequelize);
 const MilkEntry      = require('./milkEntry')(sequelize);
 const Payment        = require('./payment')(sequelize);
+const MilkRate        = require('./MilkRate')(sequelize);
 
 // Associations
 Customer.hasMany(MilkEntry,   { foreignKey: 'customer_id' });
@@ -46,5 +47,7 @@ module.exports = {
 //   Bill,
 //   BillItem,
   MilkEntry,
-  Payment
+  Payment,
+  MilkRate
+
 };

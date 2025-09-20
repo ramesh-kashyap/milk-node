@@ -11,7 +11,10 @@ module.exports = (sequelize) => {
     basis: { type: DataTypes.ENUM('fat', 'rate', 'fatSnf'), allowNull: false, defaultValue: 'fat' },
     buffaloEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     buffaloValue: { type: DataTypes.DECIMAL(6, 2) },
+    snfValue: { type: DataTypes.DECIMAL(6, 2) },
     cowEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  
     cowValue: { type: DataTypes.DECIMAL(6, 2) },
     alertMethod: {
       type: DataTypes.ENUM('No Alerts', 'SMS', 'WhatsApp', 'Phone Call'),

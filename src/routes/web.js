@@ -14,6 +14,10 @@ router.post('/complete-profile', authMiddleware, AuthController.completeProfile)
 router.get("/auth/me", authMiddleware, userController.getUserDetails);
 router.post("/addCustomer", authMiddleware, userController.addCustomer);
 router.post("/customers/list", authMiddleware, userController.getCustomerList);
+router.post("/deleteCustomer", authMiddleware, userController.deleteCustomer);
+router.get("/rates/defaults", authMiddleware, userController.getDefaultsrates);
+router.post("/rates/defaults/save", authMiddleware, userController.saveDefaultsrate);
+router.post("/save/milk-entries", authMiddleware, userController.saveMilkEntry);
 
 
 
