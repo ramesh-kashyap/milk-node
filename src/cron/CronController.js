@@ -161,7 +161,7 @@ const MonthlySalaries = async () => {
     username: 'HYM704379'
   }
 });
-  logger.info(`Starting Monthly Salary Distribution for ${allUsers.length} users.`);
+  // logger.info(`Starting Monthly Salary Distribution for ${allUsers.length} users.`);
 
   for (const user of allUsers) {
 
@@ -179,7 +179,7 @@ const MonthlySalaries = async () => {
     // console.log(teamIds);
     
     if (!teamIds.length) {
-      logger.warn(`Skipped user ${user.username}: No downline found.`);
+      // logger.warn(`Skipped user ${user.username}: No downline found.`);
       continue;
     }
 
@@ -244,7 +244,7 @@ const MonthlySalaries = async () => {
 
   }
 
-  logger.info('✅ Finished Monthly Salary Distribution.');
+  // logger.info('✅ Finished Monthly Salary Distribution.');
 };
 
 
@@ -262,7 +262,7 @@ const processPendingRewards = async () => {
     }
   });
 
-    logger.info(`Starting pendingRewards Salary Distribution for ${pendingRewards.length} users.`);
+    // logger.info(`Starting pendingRewards Salary Distribution for ${pendingRewards.length} users.`);
 
   for (const reward of pendingRewards) {
     const user = await User.findByPk(reward.user_id);
@@ -306,7 +306,7 @@ const processPendingRewards = async () => {
           nextEligibleDate.setMonth(nextEligibleDate.getMonth() + 1);
 
           if (new Date() < nextEligibleDate) {
-            logger.warn(`Skipping user ${user.username}: next salary due after ${nextEligibleDate.toISOString().split('T')[0]}`);
+            // logger.warn(`Skipping user ${user.username}: next salary due after ${nextEligibleDate.toISOString().split('T')[0]}`);
             continue;
           }
         }
@@ -338,14 +338,14 @@ const processPendingRewards = async () => {
           { where: { id: user.id } }
         );
 
-        logger.info(`✅ Released monthly salary $${rewardAmount} for user ${user.username} after 1 month of reward achievement.`);
+        // logger.info(`✅ Released monthly salary $${rewardAmount} for user ${user.username} after 1 month of reward achievement.`);
      
     } else {
-      logger.warn(`❌ User ${user.username} no longer qualifies for reward (was: level ${reward.level}, now: ${currentAchievableRank || 'none'})`);
+      // logger.warn(`❌ User ${user.username} no longer qualifies for reward (was: level ${reward.level}, now: ${currentAchievableRank || 'none'})`);
     }
   }
 
-  logger.info("✅ Finished processing pending rewards after 1 month.");
+  // logger.info("✅ Finished processing pending rewards after 1 month.");
 };
 
 
@@ -354,7 +354,7 @@ cron.schedule('*/1 * * * *', async () => {
   try {
     await globalCommunity();
   } catch (err) {
-    logger.error(`❌ Cron error: ${err.message}`, err);
+    // logger.error(`❌ Cron error: ${err.message}`, err);
   }
 });
 
@@ -363,7 +363,7 @@ cron.schedule('*/1 * * * *', async () => {
   try {
     await processPendingRewards();
   } catch (err) {
-    logger.error(`❌ Cron error: ${err.message}`, err);
+    // logger.error(`❌ Cron error: ${err.message}`, err);
   }
 });
 
