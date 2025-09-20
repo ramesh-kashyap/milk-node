@@ -294,7 +294,7 @@ const customerproducts = async (req, res) => {
     const match = customer.match(/\(([^)]+)\)/);
     const code = match ? match[1] : null;
     // console.log(code,"ehdeuh");
-    const user_id = req.user.id; // from authMiddleware
+    const user_id = req.user.id; //from authMiddleware
 
     // validate required fields
     if (!product_id || !price || !quantity || !amount) {
