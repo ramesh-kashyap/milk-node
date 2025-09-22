@@ -276,5 +276,37 @@ const userDetails = async (req, res) => {
   }
 };
 
+const updateUserDetail = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Unauthorized" });
+    }
+    const { name, phone, address } = req.body;
+    const userDe = await User.findOne({ where: { id: userId } });
+    if (!userDe) {
+      return res
+        .status(200)
+        .json({ success: false, message: "No User Data Found" });
+    }
+    // Update only fields provided
+    if (name) userDe.name = name;
+    if (phone) userDe.phone = phone;
+    if (address) userDe.address = address;
+    await userDe.save();
 
-module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails };
+    return res.status(200).json({
+      success: true,
+      message: "Dairy details updated successfully",
+      data: userDe,
+    });
+  } catch (error) {
+    console.error("updateUserDetail error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update user details",
+    });
+  }
+};
+
+module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,};

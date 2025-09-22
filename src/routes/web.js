@@ -28,6 +28,7 @@ router.post("/dairyProducts/:id", authMiddleware, DairyController.deleteproducts
 router.post("/custprolist", authMiddleware, DairyController.custprolist);
 router.post("/customerproducts", authMiddleware, DairyController.customerproducts);
 router.get("/userDetails", authMiddleware, userController.userDetails);
+router.post("/updateUserDetail", authMiddleware, userController.updateUserDetail);
 // router.get("/transection", authMiddleware, userController.transection);
 // router.get("/getpayments", authMiddleware, userController.getPayments);
 // Mount the router on /api/auth so that /register becomes /api/auth/register

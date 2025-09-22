@@ -286,14 +286,12 @@ const custprolist = async (req, res) => {
 
 
 const customerproducts = async (req, res) => {
-  console.log(req.body);
   try {
     const { bill, note, customer, product_id, product_name, price, quantity, amount, stock } = req.body;
     // console.log(bill, note, customer, product_id, product_name, price, quantity, amount, stock);
 
     const match = customer.match(/\(([^)]+)\)/);
     const code = match ? match[1] : null;
-    // console.log(code,"ehdeuh");
     const user_id = req.user.id; //from authMiddleware
 
     // validate required fields
@@ -313,7 +311,6 @@ const customerproducts = async (req, res) => {
       code: code,
       note: note, // ✅ fixed
     });
-    console.log(trx);
     return res.status(201).json({
       success: true,
       message: "Transaction saved successfully",
