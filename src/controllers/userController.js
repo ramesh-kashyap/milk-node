@@ -254,7 +254,6 @@ const onCustomer = async (req, res) => {
 // };
 
 const userDetails = async (req, res) => {
-  console.log(req.body);
   try {
    const userId = req.user?.id;
     // validate required fields

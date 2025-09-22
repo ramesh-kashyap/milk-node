@@ -1,7 +1,7 @@
 const sequelize = require('../config/connectDB');
 const { QueryTypes, Op, fn, col, literal } = require('sequelize');
 const bcrypt = require("bcryptjs");
-const { User, MilkEntry, Payment, Customer, Product, ProductTrx} = require('../models');
+const { User, MilkEntry, Payment,Transaction, Customer, Product, ProductTrx} = require('../models');
 const { INSERT } = require('sequelize/lib/query-types');
 
 const dairyReport = async (req, res) => {
@@ -107,7 +107,6 @@ const dairySale = async (req, res) => {
   }
 };
 
-
 const getPayments = async (req, res) => {
   try {
     const user = req.user;
@@ -152,14 +151,14 @@ const getPayments = async (req, res) => {
   try {
     const { id, productName, productUnit, price, stock } = req.body;
     const user_id = req.user.id;
-
+ 
     // ✅ Validation
     if (!productName || !productUnit || !price || !stock) {
       return res.status(400).json({ status: false, message: "All fields are required" });
     }
-
+ 
     let product;
-
+ 
     if (id) {
       const [updated] = await Product.update(
         {
@@ -172,13 +171,13 @@ const getPayments = async (req, res) => {
           where: { id: id, user_id: user_id },
         }
       );
-
+ 
       if (updated === 0) {
         return res.status(404).json({ status: false, message: "Product not found or not yours" });
       }
-
+ 
       product = await Product.findOne({ where: { id, user_id } });
-
+ 
       return res.status(200).json({
         status: true,
         message: "Product updated successfully",
@@ -193,7 +192,7 @@ const getPayments = async (req, res) => {
         product_price: price,
         stock,
       });
-
+ 
       return res.status(200).json({
         status: true,
         message: "Product added successfully",
@@ -209,6 +208,7 @@ const getPayments = async (req, res) => {
     });
   }
 };
+ 
 
   const fetchProducts = async (req, res) => {
    try{
@@ -285,43 +285,79 @@ const custprolist = async (req, res) => {
 
 
 
-const customerproducts = async (req, res) => {
-  try {
-    const { bill, note, customer, product_id, product_name, price, quantity, amount, stock } = req.body;
-    // console.log(bill, note, customer, product_id, product_name, price, quantity, amount, stock);
+      const customerproducts = async (req, res) => {
+        try {
+          const { bill, note, customer, product_id, product_name, price, quantity, amount, stock } = req.body;
+          // console.log(bill, note, customer, product_id, product_name, price, quantity, amount, stock);
 
-    const match = customer.match(/\(([^)]+)\)/);
-    const code = match ? match[1] : null;
-    const user_id = req.user.id; //from authMiddleware
+          const match = customer.match(/\(([^)]+)\)/);
+          const code = match ? match[1] : null;
+          const user_id = req.user.id; 
 
-    // validate required fields
-    if (!product_id || !price || !quantity || !amount) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
-    }
+          // validate required fields
+          if (!product_id || !price || !quantity || !amount) {
+            return res.status(400).json({ success: false, message: "Missing required fields" });
+          }
 
-    const trx = await ProductTrx.create({
-      bill: bill,
-      user_id: user_id,
-      product_id: product_id,
-      product_name: product_name,
-      price: price,
-      quantity: quantity,
-      amount: amount,
-      stock: stock,
-      code: code,
-      note: note, // ✅ fixed
-    });
-    return res.status(201).json({
-      success: true,
-      message: "Transaction saved successfully",
-      data: trx,
-    });
-  } catch (error) {
-    console.error("customerproducts error:", error);
-    return res.status(500).json({ success: false, message: "Fill All Details" });
-  }
-};
+          const trx = await ProductTrx.create({
+            bill: bill,
+            user_id: user_id,
+            product_id: product_id,
+            product_name: product_name,
+            price: price,
+            quantity: quantity,
+            amount: amount,
+            stock: stock,
+            code: code,
+            note: note, // ✅ fixed
+          });
+          return res.status(201).json({
+            success: true,
+            message: "Transaction saved successfully",
+            data: trx,
+          });
+        } catch (error) {
+          console.error("customerproducts error:", error);
+          return res.status(500).json({ success: false, message: "Fill All Details" });
+        }
+      };
+
+      const transDetails = async (req, res) => {
+        try {
+          const userId = req.user.id;
+          if (!userId) {
+            return res.status(401).json({ success: false, message: "User Not Authenticated!" });
+          }
+
+          const user = await User.findOne({ where: { id: userId } });
+          if (!user) {
+            return res.status(404).json({ success: false, message: "User Not Found!" });
+          }
+
+          // Fetch all customers with their transactions
+          const customers = await Customer.findAll({
+            where: { user_id: userId },
+            include: [
+              {
+                model: Transaction,
+                required: false, // customer with or without transactions
+                order: [["created_at", "DESC"]],
+              },
+            ],
+          });
+
+          return res.status(200).json({
+            success: true,
+            customers,
+            message: "Data fetched successfully!",
+          });
+        } catch (error) {
+          console.error("transDetails error:", error);
+          return res.status(500).json({ success: false, message: "Internal Server Error" });
+        }
+      };
 
 
 
-module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts};
+
+module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails};

@@ -33,6 +33,8 @@ module.exports = (sequelize) => {
     underscored: true,
   });
 
+  
+
   return Customer;
 
 };

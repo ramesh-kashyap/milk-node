@@ -11,6 +11,7 @@ const Product        = require('./product')(sequelize);
 const MilkEntry      = require('./milkEntry')(sequelize);
 const Payment        = require('./payment')(sequelize);
 const ProductTrx        = require('./dairyTransection')(sequelize);
+const Transaction       = require('./transection')(sequelize);
 
 // Associations
 Customer.hasMany(MilkEntry,   { foreignKey: 'customer_id' });
@@ -30,6 +31,11 @@ Invoice.belongsTo(Subscription,{ foreignKey: 'subscription_id' });
 
 MembershipPlan.hasMany(Invoice,{ foreignKey: 'plan_id' });
 Invoice.belongsTo(MembershipPlan,{ foreignKey: 'plan_id' });
+
+// In models/customer.js
+Customer.hasMany(Transaction, { foreignKey: "customer_id" });
+Transaction.belongsTo(Customer, { foreignKey: "customer_id" });
+
 
 
 // Optional: Payment → Invoice (nullable)
