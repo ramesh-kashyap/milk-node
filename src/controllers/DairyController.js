@@ -147,7 +147,7 @@ const getPayments = async (req, res) => {
   }
 };
 
- const dairyProducts = async (req, res) => {
+const dairyProducts = async (req, res) => {
   try {
     const { id, productName, productUnit, price, stock } = req.body;
     const user_id = req.user.id;
@@ -259,29 +259,27 @@ const getPayments = async (req, res) => {
     res.status(500).json({ status: false, message: "Server error" });
   }
 };
-const custprolist = async (req, res) => {
-  try {
+      const custprolist = async (req, res) => {
+        try {
+          const userId = req.user?.id;
+          if (!userId) {
+            return res.status(200).json({ success: false, message: "Unauthorized User" });
+          }
+          // fetch all customers for this user
+          const customers = await Customer.findAll({ where: { user_id: userId } });
+          const  products = await Product.findAll();
 
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(200).json({ success: false, message: "Unauthorized User" });
-    }
-
-    // fetch all customers for this user
-    const customers = await Customer.findAll({ where: { user_id: userId } });
-   const  products = await Product.findAll();
-
-    return res.status(200).json({
-      success: true,
-      message: "Customer and Products fetched",
-      customers,
-      products,
-    });   
-  } catch (error) {
-    console.error("custprolist error:", error);
-    return res.status(500).json({ success: false, message: "Something went wrong" });
-  }
-};
+          return res.status(200).json({
+            success: true,
+            message: "Customer and Products fetched",
+            customers,
+            products,
+          });   
+        } catch (error) {
+          console.error("custprolist error:", error);
+          return res.status(500).json({ success: false, message: "Something went wrong" });
+        }
+      };
 
 
 
@@ -323,41 +321,119 @@ const custprolist = async (req, res) => {
       };
 
       const transDetails = async (req, res) => {
-        try {
-          const userId = req.user.id;
-          if (!userId) {
-            return res.status(401).json({ success: false, message: "User Not Authenticated!" });
+          try {
+            const userId = req.user.id;
+            if (!userId) {
+              return res.status(200).json({ success: false, message: "User Not Authenticated!" });
+            }
+
+            const user = await User.findOne({ where: { id: userId } });
+            if (!user) {
+              return res.status(200).json({ success: false, message: "User Not Found!" });
+            }
+
+            const { customerId, code, allEntries } = req.body; // 👈 from frontend
+
+            let whereCondition = { user_id: userId };
+
+            if (!allEntries) {
+              // If specific customer is selected
+              if (customerId) {
+                whereCondition.customer_id = customerId;
+              }
+              if (code) {
+                whereCondition.code = code;
+              }
+            }
+            // Else keep only user_id to fetch all
+
+            // Fetch customers for dropdown
+            const customers = await Customer.findAll({
+              where: { user_id: userId },
+            });
+
+            // Fetch transactions based on condition
+            const products = await Transaction.findAll({
+              where: whereCondition,
+              raw: true,
+            });
+            //  console.log(transactions);
+            return res.status(200).json({
+              success: true,
+              customers,
+              products,
+              message: "Data fetched successfully!",
+            });
+          } catch (error) {
+            console.error("transDetails error:", error);
+            return res.status(500).json({ success: false, message: "Internal Server Error" });
+          }
+        };
+
+
+       
+          const getCode = async (req, res) => {
+            try {
+              const user_id = req.user.id; 
+              if(! user_id){
+              return res.status(200).json({status: false, message: "! Unauthrised User"});
+            }
+              let account;
+
+                account = await Customer.findAll({ where: { user_id: user_id } });
+
+              if (!account) {
+                return res.status(200).json({ message: 'Not found' });
+              }
+
+              console.log(account); 
+              return res.status(200).json({success: true, message: 'data found', data: account });
+            } catch (error) {
+              console.error(error);
+              return res.status(500).json({ success: false, message: 'Server error' });
+            }
+          };
+
+
+          const createTransaction = async (req , res) =>{
+            try {
+              const { ac_no , code, amount, bill_date, remark} = req.body;
+              console.log('test:',req.body)
+              if (!ac_no || !code || !amount || !bill_date || !remark) {
+                return res.status(200).json({
+                  success: false,
+                  message: 'All fields are required (ac_no, code, amount, bill_date, mode)',
+                });
+              }
+
+              const user_id = req.user.id;
+                if(! user_id){
+              return res.status(200).json({status: false, message: "! Unauthrised User"});
+            }
+
+              const transaction = await Transaction.create({
+                user_id,
+                customer_id:ac_no,
+                code,
+                amount,
+                bill_date,
+                remark
+              });
+
+              return res.status(200).json({
+                success: true,
+                message: 'Transaction created successfully',
+                data: transaction,
+              });
+            } catch(e){
+              console.error(e)
+              return res.status(500).json({
+                success:false,
+                message:'Server Error',
+              })
+            }
           }
 
-          const user = await User.findOne({ where: { id: userId } });
-          if (!user) {
-            return res.status(404).json({ success: false, message: "User Not Found!" });
-          }
-
-          // Fetch all customers with their transactions
-          const customers = await Customer.findAll({
-            where: { user_id: userId },
-            include: [
-              {
-                model: Transaction,
-                required: false, // customer with or without transactions
-                order: [["created_at", "DESC"]],
-              },
-            ],
-          });
-
-          return res.status(200).json({
-            success: true,
-            customers,
-            message: "Data fetched successfully!",
-          });
-        } catch (error) {
-          console.error("transDetails error:", error);
-          return res.status(500).json({ success: false, message: "Internal Server Error" });
-        }
-      };
 
 
-
-
-module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails};
+module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails, getCode, createTransaction};

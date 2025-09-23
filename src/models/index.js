@@ -12,7 +12,6 @@ const MilkEntry      = require('./milkEntry')(sequelize);
 const Payment        = require('./payment')(sequelize);
 const Transaction        = require('./transaction')(sequelize);
 const ProductTrx        = require('./dairyTransection')(sequelize);
-const Transaction       = require('./transection')(sequelize);
 
 // Associations
 Customer.hasMany(MilkEntry,   { foreignKey: 'customer_id' });
