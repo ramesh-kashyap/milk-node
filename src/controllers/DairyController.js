@@ -1,7 +1,7 @@
 const sequelize = require('../config/connectDB');
 const { QueryTypes, Op, fn, col, literal } = require('sequelize');
 const bcrypt = require("bcryptjs");
-const { User, MilkEntry, Payment, Customer, Product, ProductTrx} = require('../models');
+const { User, MilkEntry, Payment, Customer, Product, ProductTrx,Transaction} = require('../models');
 const { INSERT } = require('sequelize/lib/query-types');
 
 const dairyReport = async (req, res) => {
@@ -325,6 +325,66 @@ const customerproducts = async (req, res) => {
   }
 };
 
+const getCode = async (req, res) => {
+  try {
+     const user_id = req.user.id; 
+    if(! user_id){
+    return res.status(200).json({status: false, message: "! Unauthrised User"});
+   }
+    let account;
+
+      account = await Customer.findAll({ where: { user_id: user_id } });
+
+    if (!account) {
+      return res.status(200).json({ message: 'Not found' });
+    }
+
+    console.log(account); 
+    return res.status(200).json({success: true, message: 'data found', data: account });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
 
 
-module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts};
+const createTransaction = async (req , res) =>{
+  try {
+    const { ac_no , code, amount, bill_date, remark} = req.body;
+    console.log('test:',req.body)
+     if (!ac_no || !code || !amount || !bill_date || !remark) {
+      return res.status(200).json({
+        success: false,
+        message: 'All fields are required (ac_no, code, amount, bill_date, mode)',
+      });
+    }
+
+    const user_id = req.user.id;
+       if(! user_id){
+    return res.status(200).json({status: false, message: "! Unauthrised User"});
+   }
+
+    const transaction = await Transaction.create({
+      user_id,
+      customer_id:ac_no,
+      code,
+      amount,
+      bill_date,
+      remark
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Transaction created successfully',
+      data: transaction,
+    });
+  } catch(e){
+    console.error(e)
+    return res.status(500).json({
+      success:false,
+      message:'Server Error',
+    })
+  }
+}
+
+module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts,getCode,createTransaction};
