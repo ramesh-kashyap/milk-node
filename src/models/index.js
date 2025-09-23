@@ -10,6 +10,7 @@ const Invoice        = require('./invoice')(sequelize);
 const Product        = require('./product')(sequelize);
 const MilkEntry      = require('./milkEntry')(sequelize);
 const Payment        = require('./payment')(sequelize);
+const Transaction        = require('./transaction')(sequelize);
 const ProductTrx        = require('./dairyTransection')(sequelize);
 const Transaction       = require('./transection')(sequelize);
 
@@ -52,6 +53,7 @@ module.exports = {
   Product,
 //   Bill,
 //   BillItem,
+Transaction,
   MilkEntry,
   ProductTrx,
   Payment

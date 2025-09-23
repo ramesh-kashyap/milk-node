@@ -4,7 +4,7 @@
   "description": "A secure Node.js project with MySQL and React.js",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "nodemon src/server.js",
     "dev": "nodemon src/server.js"
   },
   "dependencies": {
@@ -34,7 +34,7 @@
     "socket.io": "^4.8.1",
     "tronweb": "^6.0.1",
     "winston": "^3.17.0",
-    "zod": "^4.1.5"
+    "zod": "^4.1.9"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
