@@ -385,8 +385,6 @@ const dairyProducts = async (req, res) => {
               if (!account) {
                 return res.status(200).json({ message: 'Not found' });
               }
-
-              console.log(account); 
               return res.status(200).json({success: true, message: 'data found', data: account });
             } catch (error) {
               console.error(error);
@@ -398,7 +396,6 @@ const dairyProducts = async (req, res) => {
           const createTransaction = async (req , res) =>{
             try {
               const { ac_no , code, amount, bill_date, remark} = req.body;
-              console.log('test:',req.body)
               if (!ac_no || !code || !amount || !bill_date || !remark) {
                 return res.status(200).json({
                   success: false,
