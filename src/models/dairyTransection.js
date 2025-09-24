@@ -7,6 +7,10 @@ module.exports = (sequelize) => {
       autoIncrement: true, 
       primaryKey: true 
     },
+    customer_id: { 
+      type: DataTypes.INTEGER, 
+      allowNull: true 
+    },
     user_id: { 
       type: DataTypes.BIGINT.UNSIGNED, 
       allowNull: true 
@@ -23,8 +27,12 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(100), 
       allowNull: true 
     },
-    price: { 
-      type: DataTypes.DECIMAL(8, 2), 
+    code: { 
+      type: DataTypes.STRING(100), 
+      allowNull: true 
+    },
+    quantity: { 
+      type: DataTypes.INTEGER, 
       allowNull: true 
     },
     stock: { 

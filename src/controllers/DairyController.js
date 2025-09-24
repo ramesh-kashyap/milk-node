@@ -285,18 +285,16 @@ const dairyProducts = async (req, res) => {
 
       const customerproducts = async (req, res) => {
         try {
-          const { bill, note, customer, product_id, product_name, price, quantity, amount, stock } = req.body;
+          const { bill, note, customer, product_id, code , product_name, price, quantity, amount, stock } = req.body;
           // console.log(bill, note, customer, product_id, product_name, price, quantity, amount, stock);
-
-          const match = customer.match(/\(([^)]+)\)/);
-          const code = match ? match[1] : null;
+        
+          // const match = customer.match(/\(([^)]+)\)/);
+          // const code = match ? match[1] : null;
           const user_id = req.user.id; 
-
           // validate required fields
           if (!product_id || !price || !quantity || !amount) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
           }
-
           const trx = await ProductTrx.create({
             bill: bill,
             user_id: user_id,
@@ -432,5 +430,45 @@ const dairyProducts = async (req, res) => {
           }
 
 
+          const getMilkEntries = async (req, res) => {
+            try {
+          // console.log('Fetching milk entries for user:', req.user);
+            const customerId = req.query.customer_id;
+            if (!customerId) {
+              return res.status(200).json({ success: false, message: 'customer_id query parameter is required' });
+            }
+              const user_id = req.user?.id;
+              if (!user_id) {
+                return res.status(200).json({ success: false, message: '! Unauthorized User' });
+              }
+          
+            const entries = await MilkEntry.findAll({
+                where: { customer_id: customerId },
+                order: [['date', 'DESC']],  // optionally sort by date
+                // you can also include user/customer info if associations exist
+              });  
+          
+              const customer = await Customer.findAll({
+                where: { id: customerId },
+              
+              });
+              // console.log('Fetched entries:', entries);
+              return res.status(200).json({
+                success: true,
+                message: 'Milk entries fetched successfully',
+                data: entries,
+                customer: customer,
+              });
 
-module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails, getCode, createTransaction};
+            } catch (e) {
+              console.error('Error fetching milk entries:', e);
+              return res.status(500).json({
+                success: false,
+                message: 'Server Error',
+              });
+            }
+          };
+
+
+
+module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails, getCode, createTransaction, getMilkEntries};
