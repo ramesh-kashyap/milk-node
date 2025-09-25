@@ -113,32 +113,44 @@ const getPayments = async (req, res) => {
     if (!user) {
       return res.status(200).json({ status: false, message: "User not found" });
     }
-    // const payments = await MilkEntry.findAll({where: { customer_id: user.id },
-    //   order: [["created_at", "DESC"]],      
-    //   raw: true,
-    // });
-    const payments = await MilkEntry.findAll({
-          order: [["created_at", "DESC"]],
-          include: [
-            {
-              model: Customer,
-              attributes: ["id", "name", "code"],
-              where: { user_id: req.user.id }, // 👈 filter by logged-in user
-            },
-          ],
-        });
+
+    // ✅ Read query params from frontend
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20; // default 20 per page
+    const offset = (page - 1) * limit;
+
+    const { count, rows: payments } = await MilkEntry.findAndCountAll({
+      order: [["created_at", "DESC"]],
+      limit,
+      offset,
+      include: [
+        {
+          model: Customer,
+          attributes: ["id", "name", "code"],
+          where: { user_id: req.user.id },
+        },
+      ],
+    });
+
     if (!payments || payments.length === 0) {
-      return res.status(200).json({status: false,
-        message: "No payments found",payments: [],
+      return res.status(200).json({
+        status: false,
+        message: "No payments found",
+        payments: [],
+        totalPages: 0,
+        currentPage: page,
       });
     }
+
     return res.status(200).json({
-      payments,
       status: true,
-      message: "Customer status updated successfully",
+      payments,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      message: "Payments fetched successfully",
     });
   } catch (error) {
-    console.error("onCustomer Error:", error.message);
+    console.error("getPayments Error:", error.message);
     return res.status(200).json({
       status: false,
       message: "Something went wrong",
@@ -146,6 +158,7 @@ const getPayments = async (req, res) => {
     });
   }
 };
+
 
 const dairyProducts = async (req, res) => {
   try {
