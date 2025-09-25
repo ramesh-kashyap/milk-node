@@ -19,6 +19,10 @@ module.exports = (sequelize) => {
       type: DataTypes.BIGINT.UNSIGNED, 
       allowNull: true 
     },
+    t_type: { 
+      type: DataTypes.STRING(100), 
+      allowNull: true 
+    },
     product_id: { 
       type: DataTypes.INTEGER, 
       allowNull: true 
@@ -28,6 +32,14 @@ module.exports = (sequelize) => {
       allowNull: true 
     },
     code: { 
+      type: DataTypes.STRING(100), 
+      allowNull: true 
+    },
+    bill: { 
+      type: DataTypes.STRING(100), 
+      allowNull: true 
+    },
+    note: { 
       type: DataTypes.STRING(100), 
       allowNull: true 
     },

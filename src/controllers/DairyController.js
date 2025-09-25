@@ -127,7 +127,7 @@ const getPayments = async (req, res) => {
         {
           model: Customer,
           attributes: ["id", "name", "code"],
-          where: { user_id: req.user.id },
+          where: { user_id: req.user.id , active_status: 1},
         },
       ],
     });
@@ -279,7 +279,7 @@ const dairyProducts = async (req, res) => {
             return res.status(200).json({ success: false, message: "Unauthorized User" });
           }
           // fetch all customers for this user
-          const customers = await Customer.findAll({ where: { user_id: userId } });
+          const customers = await Customer.findAll({ where: { user_id: userId, active_status: 1 } });
           const  products = await Product.findAll();
 
           return res.status(200).json({
@@ -298,8 +298,8 @@ const dairyProducts = async (req, res) => {
 
       const customerproducts = async (req, res) => {
         try {
-          const { bill, note, customer, product_id, code , product_name, price, quantity, amount, stock } = req.body;
-          // console.log(bill, note, customer, product_id, product_name, price, quantity, amount, stock);
+          const { bill,  customer, product_id,transactionType, code , product_name, price, quantity, amount, stock, note} = req.body;
+          // console.log(transactionType,bill, note, customer, product_id, product_name, price, quantity, amount, stock);
         
           // const match = customer.match(/\(([^)]+)\)/);
           // const code = match ? match[1] : null;
@@ -312,6 +312,7 @@ const dairyProducts = async (req, res) => {
             bill: bill,
             user_id: user_id,
             product_id: product_id,
+            t_type: transactionType,
             product_name: product_name,
             price: price,
             quantity: quantity,
@@ -337,14 +338,11 @@ const dairyProducts = async (req, res) => {
             if (!userId) {
               return res.status(200).json({ success: false, message: "User Not Authenticated!" });
             }
-
             const user = await User.findOne({ where: { id: userId } });
             if (!user) {
               return res.status(200).json({ success: false, message: "User Not Found!" });
             }
-
             const { customerId, code, allEntries } = req.body; // 👈 from frontend
-
             let whereCondition = { user_id: userId };
 
             if (!allEntries) {
@@ -360,13 +358,21 @@ const dairyProducts = async (req, res) => {
 
             // Fetch customers for dropdown
             const customers = await Customer.findAll({
-              where: { user_id: userId },
+              where: { user_id: userId , active_status: 1},
             });
 
             // Fetch transactions based on condition
             const products = await Transaction.findAll({
               where: whereCondition,
               raw: true,
+              include: [
+    {
+      model: Customer,
+      as: "customer",           // must match association alias
+      where: { active_status: 1 }, // ✅ only active customers
+      required: true               // exclude entries without active customer
+    }
+  ]
             });
             //  console.log(transactions);
             return res.status(200).json({
@@ -391,7 +397,7 @@ const dairyProducts = async (req, res) => {
             }
               let account;
 
-                account = await Customer.findAll({ where: { user_id: user_id } });
+                account = await Customer.findAll({ where: { user_id: user_id , active_status: 1} });
 
               if (!account) {
                 return res.status(200).json({ message: 'Not found' });
@@ -457,12 +463,11 @@ const dairyProducts = async (req, res) => {
           
             const entries = await MilkEntry.findAll({
                 where: { customer_id: customerId },
-                order: [['date', 'DESC']],  // optionally sort by date
-                // you can also include user/customer info if associations exist
+                order: [['date', 'DESC']], 
               });  
           
               const customer = await Customer.findAll({
-                where: { id: customerId },
+                where: { id: customerId , active_status: 1},
               
               });
               // console.log('Fetched entries:', entries);
