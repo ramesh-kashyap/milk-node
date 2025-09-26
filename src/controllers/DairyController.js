@@ -365,14 +365,6 @@ const dairyProducts = async (req, res) => {
             const products = await Transaction.findAll({
               where: whereCondition,
               raw: true,
-              include: [
-    {
-      model: Customer,
-      as: "customer",           // must match association alias
-      where: { active_status: 1 }, // ✅ only active customers
-      required: true               // exclude entries without active customer
-    }
-  ]
             });
             //  console.log(transactions);
             return res.status(200).json({
@@ -487,6 +479,54 @@ const dairyProducts = async (req, res) => {
             }
           };
 
+           const billReport = async (req, res) => {
+              try {
+                const { from, to } = req.body;
+                console.log( from, to);
+                const user_id = req.user.id;
+
+                if (!user_id) {
+                  return res.status(401).json({ success: false, message: "Unauthorized User" });
+                }
+
+                const whereClause = { user_id };
+
+                if (from && to) {
+                  whereClause.date = {
+                    [Op.between]: [from, to],  // 👈 filter by date range
+                  };
+                }
+
+                const payments = await Payment.findAll({
+                  attributes: [
+                    "customer_id",
+                    "type",
+                    [fn("SUM", col("amount")), "totalAmount"],
+                  ],
+                  where: whereClause,
+                  include: [
+                    {
+                      model: Customer,
+                      attributes: ["id", "name", "code", "customerType"],
+                      where: { user_id },
+                    },
+                  ],
+                  group: ["customer_id", "type", "Customer.id"],
+                  raw: true,
+                });
+
+                return res.status(200).json({
+                  success: true,
+                  data: payments,
+                });
+              } catch (e) {
+                console.error(e);
+                return res.status(500).json({
+                  success: false,
+                  message: "Server Error",
+                });
+              }
+            };
 
 
-module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails, getCode, createTransaction, getMilkEntries};
+module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails, getCode, createTransaction, getMilkEntries, billReport};
