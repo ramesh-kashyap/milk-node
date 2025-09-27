@@ -298,17 +298,23 @@ const dairyProducts = async (req, res) => {
 
       const customerproducts = async (req, res) => {
         try {
-          const { bill, customer_id, customer, product_id,transactionType, code , product_name, price, quantity, amount, stock, note} = req.body;
+          const { bill,  customer, product_id,transactionType, code , product_name, price, quantity, amount, stock, note} = req.body;
        
           const user_id = req.user.id;
           if (!product_id || !price || !quantity || !amount) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
           }
+           const customerid = await Customer.findOne({
+                where: { code: code},
+              
+              });
+          const c_id = customerid.id;
+            
           const trx = await ProductTrx.create({
             bill: bill,
             user_id: user_id,
             product_id: product_id,
-            customer_id:customer_id,
+            customer_id: c_id,
             t_type: transactionType,
             product_name: product_name,
             price: price,
