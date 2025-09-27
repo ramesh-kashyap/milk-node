@@ -297,14 +297,11 @@ const dairyProducts = async (req, res) => {
 
 
       const customerproducts = async (req, res) => {
+        console.log(req.body);
         try {
-          const { bill,  customer, product_id,transactionType, code , product_name, price, quantity, amount, stock, note} = req.body;
-          // console.log(transactionType,bill, note, customer, product_id, product_name, price, quantity, amount, stock);
-        
-          // const match = customer.match(/\(([^)]+)\)/);
-          // const code = match ? match[1] : null;
-          const user_id = req.user.id; 
-          // validate required fields
+          const { bill, customer_id, customer, product_id,transactionType, code , product_name, price, quantity, amount, stock, note} = req.body;
+       
+          const user_id = req.user.id;
           if (!product_id || !price || !quantity || !amount) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
           }
@@ -312,6 +309,7 @@ const dairyProducts = async (req, res) => {
             bill: bill,
             user_id: user_id,
             product_id: product_id,
+            customer_id:customer_id,
             t_type: transactionType,
             product_name: product_name,
             price: price,
@@ -486,7 +484,6 @@ const dairyProducts = async (req, res) => {
                 if (!user_id) {
                   return res.status(401).json({ success: false, message: "Unauthorized User" });
                 }
-
                 const whereClause = { user_id };
 
                 if (from && to) {
