@@ -30,6 +30,9 @@ router.post("/customerproducts", authMiddleware, DairyController.customerproduct
 router.get("/userDetails", authMiddleware, userController.userDetails);
 router.get("/get-code", authMiddleware, DairyController.getCode);
 router.post("/transactions", authMiddleware, DairyController.createTransaction);
+router.get("/milk-entries", authMiddleware, DairyController.getMilkEntries);
+router.post("/billreport", authMiddleware, DairyController.billReport);
+router.post("/create-payment", authMiddleware, DairyController.createPayment);
 // router.get("/transection", authMiddleware, userController.transection);
 // router.get("/getpayments", authMiddleware, userController.getPayments);
 // Mount the router on /api/auth so that /register becomes /api/auth/register

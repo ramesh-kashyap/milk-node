@@ -33,9 +33,9 @@ MembershipPlan.hasMany(Invoice,{ foreignKey: 'plan_id' });
 Invoice.belongsTo(MembershipPlan,{ foreignKey: 'plan_id' });
 
 
-// Optional: Payment → Invoice (nullable)
-Invoice.hasMany(Payment,      { foreignKey: 'invoice_id' });
-Payment.belongsTo(Invoice,    { foreignKey: 'invoice_id' });
+// // Optional: Payment → Invoice (nullable)
+// Invoice.hasMany(Payment,      { foreignKey: 'invoice_id' });
+// Payment.belongsTo(Invoice,    { foreignKey: 'invoice_id' });
 
 module.exports = {
   sequelize,

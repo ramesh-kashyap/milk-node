@@ -8,6 +8,7 @@ module.exports = (sequelize) => {
     date: { type: DataTypes.DATEONLY, allowNull: false },
     session: { type: DataTypes.ENUM('AM','PM'), allowNull: false },
     litres: { type: DataTypes.DECIMAL(8,2), allowNull: false },
+    status: { type: DataTypes.STRING(20), allowNull: false },
     fat: { type: DataTypes.DECIMAL(4,2) },
     snf: { type: DataTypes.DECIMAL(4,2) },
     rate: { type: DataTypes.DECIMAL(6,2), allowNull: false },

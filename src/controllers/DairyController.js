@@ -1,8 +1,9 @@
 const sequelize = require('../config/connectDB');
-const { QueryTypes, Op, fn, col, literal } = require('sequelize');
+const { QueryTypes, Op, fn, col, literal, json } = require('sequelize');
 const bcrypt = require("bcryptjs");
 const { User, MilkEntry, Payment, Customer, Product, ProductTrx,Transaction} = require('../models');
 const { INSERT } = require('sequelize/lib/query-types');
+const { success } = require('zod');
 
 const dairyReport = async (req, res) => {
   try {
@@ -286,44 +287,40 @@ const custprolist = async (req, res) => {
 
 
 const customerproducts = async (req, res) => {
-  console.log(req.body);
-  try {
-    const { bill, note, customer, product_id, product_name, price, quantity, amount, stock } = req.body;
-    // console.log(bill, note, customer, product_id, product_name, price, quantity, amount, stock);
-
-    const match = customer.match(/\(([^)]+)\)/);
-    const code = match ? match[1] : null;
-    // console.log(code,"ehdeuh");
-    const user_id = req.user.id; //from authMiddleware
-
-    // validate required fields
-    if (!product_id || !price || !quantity || !amount) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
-    }
-
-    const trx = await ProductTrx.create({
-      bill: bill,
-      user_id: user_id,
-      product_id: product_id,
-      product_name: product_name,
-      price: price,
-      quantity: quantity,
-      amount: amount,
-      stock: stock,
-      code: code,
-      note: note, // ✅ fixed
-    });
-    console.log(trx);
-    return res.status(201).json({
-      success: true,
-      message: "Transaction saved successfully",
-      data: trx,
-    });
-  } catch (error) {
-    console.error("customerproducts error:", error);
-    return res.status(500).json({ success: false, message: "Fill All Details" });
-  }
-};
+        try {
+          const { bill,  customer, product_id,transactionType, code , product_name, price, quantity, amount, stock, note} = req.body;
+          // console.log(transactionType,bill, note, customer, product_id, product_name, price, quantity, amount, stock);
+       
+          // const match = customer.match(/\(([^)]+)\)/);
+          // const code = match ? match[1] : null;
+          const user_id = req.user.id;
+          // validate required fields
+          if (!product_id || !price || !quantity || !amount) {
+            return res.status(400).json({ success: false, message: "Missing required fields" });
+          }
+          const trx = await ProductTrx.create({
+            bill: bill,
+            user_id: user_id,
+            product_id: product_id,
+            t_type: transactionType,
+            product_name: product_name,
+            price: price,
+            quantity: quantity,
+            amount: amount,
+            stock: stock,
+            code: code,
+            note: note, // ✅ fixed
+          });
+          return res.status(201).json({
+            success: true,
+            message: "Transaction saved successfully",
+            data: trx,
+          });
+        } catch (error) {
+          console.error("customerproducts error:", error);
+          return res.status(500).json({ success: false, message: "Fill All Details" });
+        }
+      };
 
 const getCode = async (req, res) => {
   try {
@@ -339,7 +336,7 @@ const getCode = async (req, res) => {
       return res.status(200).json({ message: 'Not found' });
     }
 
-    console.log(account); 
+    // console.log(account); 
     return res.status(200).json({success: true, message: 'data found', data: account });
   } catch (error) {
     console.error(error);
@@ -387,4 +384,161 @@ const createTransaction = async (req , res) =>{
   }
 }
 
-module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts,getCode,createTransaction};
+const getMilkEntries = async (req, res) => {
+  try {
+  
+ console.log('Fetching milk entries for user:', req.user);
+  const customerId = req.query.customer_id;
+  if (!customerId) {
+    return res.status(200).json({ success: false, message: 'customer_id query parameter is required' });
+  }
+    const user_id = req.user?.id;
+    if (!user_id) {
+      return res.status(200).json({ success: false, message: '! Unauthorized User' });
+    }
+ 
+
+    
+  const entries = await MilkEntry.findAll({
+  where: {
+    customer_id: customerId,
+ 
+  },
+  order: [['date', 'DESC']], // sort by date descending
+});
+ 
+     const customer = await Customer.findAll({
+      where: { id: customerId },
+    });
+     const payment = await Payment.findAll({
+      where: { customer_id: customerId },
+    });
+
+      const productTransactions = await ProductTrx.findAll({
+      where: { customer_id: customerId },
+    });
+
+    console.log('Fetched entries:', productTransactions);
+    return res.status(200).json({
+      success: true,
+      message: 'Milk entries fetched successfully',
+      data: entries,
+      customer: customer,
+      payment: payment,
+      productTransactions: productTransactions,
+    });
+
+  } catch (e) {
+    console.error('Error fetching milk entries:', e);
+    return res.status(500).json({
+      success: false,
+      message: 'Server Error',
+    });
+  }
+};
+
+
+
+const createPayment = async (req,res) =>{
+  try{
+    const{amount,customerId,type} = req.body;
+    console.log('ggg',req.body);
+    const user_id = req.user.id;
+    if(!amount || !customerId || !type){
+      return res.status(200).json({success: false, message: 'Amount, Customer ID and Type are required'});
+    }
+    const date = new Date().toISOString().split('T')[0];
+
+    const activeEntries = await MilkEntry.findAll({
+  where: {
+    customer_id: customerId,
+    status: 'active', // only active ones
+  },
+});
+console.log('Active entries to update:', activeEntries.length);
+
+// 2. If any active entries found, mark them inactive
+if (activeEntries.length > 0) {
+  console.log('Marking entries as inactive for customer ID:', customerId);
+  const test = await MilkEntry.update(
+    { status: 'inactive' },
+    { where: { customer_id: customerId, status: 'active' } }
+  );
+  console.log('Entries marked inactive:', test);
+}
+
+ const activeProducts = await ProductTrx.findAll({
+      where: { customer_id: customerId, status: 'active' }
+    });
+
+    if (activeProducts.length > 0) {
+      await ProductTrx.update(
+        { status: 'inactive' },
+        { where: { customer_id: customerId, status: 'active' } }
+      );
+      console.log(`Marked ${activeProducts.length} product transactions inactive for customer ${customerId}`);
+    }
+    
+const payment = await Payment.create({
+      user_id,
+      customer_id: customerId,
+      date,
+      type: type,
+      mode:  'cash',
+      amount,
+      note:'Payment made'
+    });
+
+    return res.status(200).json({success:true, message: 'Payment recorded', data: payment});
+  }catch(e){
+    console.error(e);
+    return res.status(500).json({success: false, message: 'Server Error'});
+  }
+
+}
+const billReport = async (req, res) => {
+              try {
+                const { from, to } = req.body;
+                const user_id = req.user.id;
+                if (!user_id) {
+                  return res.status(401).json({ success: false, message: "Unauthorized User" });
+                }
+                const whereClause = { user_id };
+ 
+                if (from && to) {
+                  whereClause.date = {
+                    [Op.between]: [from, to],  // 👈 filter by date range
+                  };
+                }
+ 
+                const payments = await Payment.findAll({
+                  attributes: [
+                    "customer_id",
+                    "type",
+                    [fn("SUM", col("amount")), "totalAmount"],
+                  ],
+                  where: whereClause,
+                  include: [
+                    {
+                      model: Customer,
+                      attributes: ["id", "name", "code", "customerType"],
+                      where: { user_id },
+                    },
+                  ],
+                  group: ["customer_id", "type", "Customer.id"],
+                  raw: true,
+                });
+ 
+                return res.status(200).json({
+                  success: true,
+                  data: payments,
+                });
+              } catch (e) {
+                console.error(e);
+                return res.status(500).json({
+                  success: false,
+                  message: "Server Error",
+                });
+              }
+            };
+module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts,getCode,createTransaction,getMilkEntries,createPayment,billReport};
