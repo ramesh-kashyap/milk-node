@@ -297,7 +297,6 @@ const dairyProducts = async (req, res) => {
 
 
       const customerproducts = async (req, res) => {
-        console.log(req.body);
         try {
           const { bill, customer_id, customer, product_id,transactionType, code , product_name, price, quantity, amount, stock, note} = req.body;
        
@@ -364,7 +363,6 @@ const dairyProducts = async (req, res) => {
               where: whereCondition,
               raw: true,
             });
-            //  console.log(transactions);
             return res.status(200).json({
               success: true,
               customers,
@@ -441,7 +439,6 @@ const dairyProducts = async (req, res) => {
 
           const getMilkEntries = async (req, res) => {
             try {
-          // console.log('Fetching milk entries for user:', req.user);
             const customerId = req.query.customer_id;
             if (!customerId) {
               return res.status(200).json({ success: false, message: 'customer_id query parameter is required' });
@@ -460,7 +457,6 @@ const dairyProducts = async (req, res) => {
                 where: { id: customerId , active_status: 1},
               
               });
-              // console.log('Fetched entries:', entries);
               return res.status(200).json({
                 success: true,
                 message: 'Milk entries fetched successfully',
