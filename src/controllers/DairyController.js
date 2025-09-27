@@ -483,7 +483,6 @@ const dairyProducts = async (req, res) => {
               try {
                 const { from, to } = req.body;
                 const user_id = req.user.id;
-
                 if (!user_id) {
                   return res.status(401).json({ success: false, message: "Unauthorized User" });
                 }
