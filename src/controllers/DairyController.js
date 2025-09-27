@@ -482,7 +482,6 @@ const dairyProducts = async (req, res) => {
            const billReport = async (req, res) => {
               try {
                 const { from, to } = req.body;
-                console.log( from, to);
                 const user_id = req.user.id;
 
                 if (!user_id) {
