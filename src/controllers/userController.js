@@ -275,37 +275,82 @@ const userDetails = async (req, res) => {
   }
 };
 
-const updateUserDetail = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(400).json({ success: false, message: "Unauthorized" });
-    }
-    const { name, phone, address } = req.body;
-    const userDe = await User.findOne({ where: { id: userId } });
-    if (!userDe) {
-      return res
-        .status(200)
-        .json({ success: false, message: "No User Data Found" });
-    }
-    // Update only fields provided
-    if (name) userDe.name = name;
-    if (phone) userDe.phone = phone;
-    if (address) userDe.address = address;
-    await userDe.save();
+                const updateUserDetail = async (req, res) => {
+                  try {
+                    const userId = req.user?.id;
+                    if (!userId) {
+                      return res.status(400).json({ success: false, message: "Unauthorized" });
+                    }
+                    const { name, phone, address } = req.body;
+                    const userDe = await User.findOne({ where: { id: userId } });
+                    if (!userDe) {
+                      return res
+                        .status(200)
+                        .json({ success: false, message: "No User Data Found" });
+                    }
+                    // Update only fields provided
+                    if (name) userDe.name = name;
+                    if (phone) userDe.phone = phone;
+                    if (address) userDe.address = address;
+                    await userDe.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Dairy details updated successfully",
-      data: userDe,
-    });
-  } catch (error) {
-    console.error("updateUserDetail error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update user details",
-    });
-  }
-};
+                    return res.status(200).json({
+                      success: true,
+                      message: "Dairy details updated successfully",
+                      data: userDe,
+                    });
+                  } catch (error) {
+                    console.error("updateUserDetail error:", error);
+                    return res.status(500).json({
+                      success: false,
+                      message: "Failed to update user details",
+                    });
+                  }
+                };
+              const saveMilkEntry = async (req, res) => {
+              try {
+                /**
+                 * Expected body (from your Flutter payload):
+                 * {
+                 *   date: "2025-09-10",
+                 *   session: "AM"|"PM",
+                 *   customer_id: 123,
+                 *   litres: 10.5,
+                 *   fat: 7.5,
+                 *   rate: 62.5,
+                 *   amount: 656.25,
+                 *   animal: "buffalo"|"cow",
+                 *   basis: "fat"|"rate"|"fat_snf",
+                 *   zero: false,
+                 *   note: "optional"
+                 * }
+                 */
+                const {customer_id, date, session, litres, fat, rate, amount, animal, basis, zero, note} = req.body;
+            
+                if (!customer_id || !date || !session || !animal || !basis) {
+                  return res.status(400).json({ status: false, message: 'Missing required fields' });
+                }
+                const entry = await MilkEntry.create({
+                  customer_id,
+                  date,
+                  session,
+                  litres,
+                  fat,
+                  rate,
+                  amount,
+                  animal,
+                  note: note ?? null,
+                });
+            
+                return res.status(200).json({
+                  status: true,
+                  message: 'Milk entry saved',
+                  data: entry,
+                });
+              } catch (err) {
+                console.error('saveMilkEntry error:', err);
+                return res.status(500).json({ status: false, message: 'Server error' });
+              }
+            };
 
-module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,};
+module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,saveMilkEntry};

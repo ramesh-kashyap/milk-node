@@ -336,6 +336,7 @@ const dairyProducts = async (req, res) => {
       };
 
       const transDetails = async (req, res) => {
+        console.log(req.body);
           try {
             const userId = req.user.id;
             if (!userId) {
@@ -444,40 +445,54 @@ const dairyProducts = async (req, res) => {
 
 
           const getMilkEntries = async (req, res) => {
-            try {
-            const customerId = req.query.customer_id;
-            if (!customerId) {
-              return res.status(200).json({ success: false, message: 'customer_id query parameter is required' });
-            }
-              const user_id = req.user?.id;
-              if (!user_id) {
-                return res.status(200).json({ success: false, message: '! Unauthorized User' });
+              try {
+            
+            console.log('Fetching milk entries for user:', req.user);
+              const customerId = req.query.customer_id;
+              if (!customerId) {
+                return res.status(200).json({ success: false, message: 'customer_id query parameter is required' });
               }
-          
-            const entries = await MilkEntry.findAll({
-                where: { customer_id: customerId },
-                order: [['date', 'DESC']], 
-              });  
-          
-              const customer = await Customer.findAll({
-                where: { id: customerId , active_status: 1},
-              
-              });
-              return res.status(200).json({
-                success: true,
-                message: 'Milk entries fetched successfully',
-                data: entries,
-                customer: customer,
-              });
-
-            } catch (e) {
-              console.error('Error fetching milk entries:', e);
-              return res.status(500).json({
-                success: false,
-                message: 'Server Error',
-              });
-            }
-          };
+                const user_id = req.user?.id;
+                if (!user_id) {
+                  return res.status(200).json({ success: false, message: '! Unauthorized User' });
+                }
+              const entries = await MilkEntry.findAll({
+              where: {
+                customer_id: customerId,
+            
+              },
+              order: [['date', 'DESC']], // sort by date descending
+            });
+            
+                const customer = await Customer.findAll({
+                  where: { id: customerId,active_status: 1 },
+                });
+                const payment = await Payment.findAll({
+                  where: { customer_id: customerId },
+                });
+            
+                  const productTransactions = await ProductTrx.findAll({
+                  where: { customer_id: customerId },
+                });
+            
+                console.log('Fetched entries:', productTransactions);
+                return res.status(200).json({
+                  success: true,
+                  message: 'Milk entries fetched successfully',
+                  data: entries,
+                  customer: customer,
+                  payment: payment,
+                  productTransactions: productTransactions,
+                });
+            
+              } catch (e) {
+                console.error('Error fetching milk entries:', e);
+                return res.status(500).json({
+                  success: false,
+                  message: 'Server Error',
+                });
+              }
+            };
 
            const billReport = async (req, res) => {
               try {
@@ -524,6 +539,65 @@ const dairyProducts = async (req, res) => {
                 });
               }
             };
+           
+ 
+           const createPayment = async (req,res) =>{
+            try{
+              const{amount,customerId,type} = req.body;
+              console.log('ggg',req.body);
+              const user_id = req.user.id;
+              if(!amount || !customerId || !type){
+                return res.status(200).json({success: false, message: 'Amount, Customer ID and Type are required'});
+              }
+              const date = new Date().toISOString().split('T')[0];          
+              const activeEntries = await MilkEntry.findAll({
+            where: {
+              customer_id: customerId,
+              status: 'active', // only active ones
+            },
+          });
+          console.log('Active entries to update:', activeEntries.length);
+          
+          // 2. If any active entries found, mark them inactive
+          if (activeEntries.length > 0) {
+            console.log('Marking entries as inactive for customer ID:', customerId);
+            const test = await MilkEntry.update(
+              { status: 'inactive' },
+              { where: { customer_id: customerId, status: 'active' } }
+            );
+            console.log('Entries marked inactive:', test);
+          }
+          
+          const activeProducts = await ProductTrx.findAll({
+                where: { customer_id: customerId, status: 'active' }
+              });
+          
+              if (activeProducts.length > 0) {
+                await ProductTrx.update(
+                  { status: 'inactive' },
+                  { where: { customer_id: customerId, status: 'active' } }
+                );
+                console.log(`Marked ${activeProducts.length} product transactions inactive for customer ${customerId}`);
+              }
+            
+          const payment = await Payment.create({
+                user_id,
+                customer_id: customerId,
+                date,
+                type: type,
+                mode:  'cash',
+                amount,
+                note:'Payment made'
+              });
+          
+              return res.status(200).json({success:true, message: 'Payment recorded', data: payment});
+            }catch(e){
+              console.error(e);
+              return res.status(500).json({success: false, message: 'Server Error'});
+            }
+ 
+}
+ 
 
 
-module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails, getCode, createTransaction, getMilkEntries, billReport};
+module.exports = {dairyReport, dairyPurchase,dairySale, getPayments,dairyProducts,fetchProducts,deleteproducts, custprolist,customerproducts, transDetails, getCode, createTransaction, getMilkEntries, billReport, createPayment};
