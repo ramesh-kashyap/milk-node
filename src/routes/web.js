@@ -22,7 +22,8 @@ router.get("/dairysale", authMiddleware, DairyController.dairySale);
 
 router.post("/dairyProducts", authMiddleware, DairyController.dairyProducts);
 router.get("/fetchProducts", authMiddleware, DairyController.fetchProducts);
-
+router.get("/rates/defaults", authMiddleware, userController.getDefaultsrates);
+router.post("/rates/defaults/save", authMiddleware, userController.saveDefaultsrate);
 router.get("/paymentslip", authMiddleware, DairyController.getPayments);
 router.post("/dairyProducts/:id", authMiddleware, DairyController.deleteproducts);
 router.post("/custprolist", authMiddleware, DairyController.custprolist);

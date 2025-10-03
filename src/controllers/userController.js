@@ -1,7 +1,7 @@
 const sequelize = require('../config/connectDB'); // Import Sequelize connection
 const { QueryTypes ,Op } = require('sequelize');
 const bcrypt = require("bcryptjs");
-const { User,Customer,Payment } = require('../models');  // ✅ Correct way
+const { User,Customer,Payment,MilkRate ,MilkEntry } = require('../models');  // ✅ Correct way
 const { customerCreateSchema,customerListSchema } = require('../validators/customer.schema');
 
 const  getUserDetails = async (req, res) => {
@@ -352,5 +352,63 @@ const userDetails = async (req, res) => {
                 return res.status(500).json({ status: false, message: 'Server error' });
               }
             };
+            const getDefaultsrates = async (req, res) => {
+              try {
+                const rows = await MilkRate.findAll({
+                  order: [['updated_at', 'DESC'], ['created_at', 'DESC']],
+                });
+            
+                const data = {};
+                for (const r of rows) {
+                  const a = r.animal;   // buffalo | cow
+                  const b = r.basis;    // rate | fat | fat_snf
+                  if (!data[a]) data[a] = {};
+                  if (!data[a][b]) {
+                    data[a][b] = {
+                      fixed_rate: Number(r.fixed_rate || 0),
+                      fat_rate:   Number(r.fat_rate   || 0),
+                      snf_rate:   Number(r.snf_rate   || 0),
+                    };
+                  }
+                }
+            
+                return res.status(200).json({ status: true, data });
+              } catch (err) {
+                console.error('getDefaultsrates error:', err);
+                return res.status(500).json({ status: false, message: 'Failed to load rates' });
+              }
+            };
+            const saveDefaultsrate = async (req, res) => {
+            try {
+                const { bm_fat_rate, cm_fat_rate, bm_fixed_rate, cm_fixed_rate } = req.body;
+            
+                console.log(bm_fat_rate, cm_fat_rate, bm_fixed_rate, cm_fixed_rate);
+                const updates = [
+                  { animal: "buffalo", basis: "fat",  fat_rate: bm_fat_rate },
+                  { animal: "buffalo", basis: "rate", fixed_rate: bm_fixed_rate },
+                  { animal: "cow",     basis: "fat",  fat_rate: cm_fat_rate },
+                  { animal: "cow",     basis: "rate", fixed_rate: cm_fixed_rate },
+                ];
+            
+                for (const u of updates) {
+                  if (u.fat_rate == null && u.fixed_rate == null) continue;
+                  const [row] = await MilkRate.findOrCreate({
+                    where: { animal: u.animal, basis: u.basis },
+                    defaults: { fat_rate: 0, snf_rate: 0, fixed_rate: 0 },
+                  });
+                  await row.update({
+                    fat_rate:   u.fat_rate   ?? row.fat_rate,
+                    fixed_rate: u.fixed_rate ?? row.fixed_rate,
+                  });
+                }
+            
+                return res.json({ status: true, message: "Rates saved" });
+              } catch (err) {
+                console.error("save error:", err);
+                return res.status(500).json({ status: false, message: "Failed to save rates" });
+              }
+            };
 
-module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,saveMilkEntry};
+
+
+module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,saveMilkEntry,getDefaultsrates,saveDefaultsrate };
