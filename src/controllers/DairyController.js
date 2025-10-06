@@ -10,7 +10,7 @@ const dairyReport = async (req, res) => {
     if (!user) {
       return res.status(200).json({ status: false, message: "User not Found!" });
     }
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0]; 
     // 👉 1. Today’s total
     const todayTotals = await MilkEntry.findOne({
       attributes: [
@@ -29,6 +29,9 @@ const dairyReport = async (req, res) => {
     });
 
     // 👉 2. Monthly totals
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
     const monthlyTotals = await MilkEntry.findAll({
   attributes: [
     [fn("YEAR", col("created_at")), "year"],
@@ -40,7 +43,7 @@ const dairyReport = async (req, res) => {
   ],
   where: { customer_id: user.id },
   group: ["year", "month", "note"],   // 👈 include note in group
-  order: [[literal("year"), "DESC"], [literal("month"), "DESC"]],
+  order: [[literal("year"), "ASC"], [literal("month"), "ASC"]],
   raw: true,
 });
     res.json({
@@ -63,11 +66,13 @@ const dairyPurchase = async (req, res) => {
     }
     // Fetch all entries for this user
     const entries = await MilkEntry.findAll({
-      // where: {customer_id: user.id, note: "Buy"}, 
+      // where: {customer_id: user.id, note: "Buy"},
       order: [['created_at', 'DESC']],
       include : [{
         model : Customer,
-        where :{user_id: req.user.id},
+        where :{user_id: req.user.id,
+          customer_type: 'Purchaser'          // 👈 only purchase customers,
+        },
       }],
       raw: true
     });
@@ -75,12 +80,13 @@ const dairyPurchase = async (req, res) => {
       status: true,
       entries
     });
-
+ 
   } catch (err) {
     console.error("Error in dairyPurchase:", err);
     res.status(500).json({ status: false, message: "Server Error" });
   }
 };
+
 const dairySale = async (req, res) => {
   try {
     const user = req.user;
@@ -88,19 +94,25 @@ const dairySale = async (req, res) => {
       return res.status(200).json({ status: false, message: "User not Found!" });
     }
     const entries = await MilkEntry.findAll({
-      // where: {customer_id: user.id, note: "Sale"}, 
-      order: [['created_at', 'DESC']], // latest entries first
-      include :[{
-        model:Customer,
-        where: {user_id: req.user.id},
-      }],
-      raw: true
-    });
+  order: [['created_at', 'DESC']], // latest entries first
+  include: [
+    {
+      model: Customer,
+      where: {
+        user_id: req.user.id,
+        customer_type: 'Seller'          // 👈 only purchase customers
+      },
+    },
+  ],
+  raw: true,
+});
+ 
+console.log('Fetched sale entries:', entries); // 👈 debug log
     res.json({
       status: true,
       entries
     });
-
+ 
   } catch (err) {
     console.error("Error in dairyPurchase:", err);
     res.status(500).json({ status: false, message: "Server Error" });
@@ -336,7 +348,6 @@ const dairyProducts = async (req, res) => {
       };
 
       const transDetails = async (req, res) => {
-        console.log(req.body);
           try {
             const userId = req.user.id;
             if (!userId) {
@@ -446,8 +457,6 @@ const dairyProducts = async (req, res) => {
 
           const getMilkEntries = async (req, res) => {
               try {
-            
-            console.log('Fetching milk entries for user:', req.user);
               const customerId = req.query.customer_id;
               if (!customerId) {
                 return res.status(200).json({ success: false, message: 'customer_id query parameter is required' });
@@ -474,8 +483,6 @@ const dairyProducts = async (req, res) => {
                   const productTransactions = await ProductTrx.findAll({
                   where: { customer_id: customerId },
                 });
-            
-                console.log('Fetched entries:', productTransactions);
                 return res.status(200).json({
                   success: true,
                   message: 'Milk entries fetched successfully',
@@ -544,7 +551,6 @@ const dairyProducts = async (req, res) => {
            const createPayment = async (req,res) =>{
             try{
               const{amount,customerId,type} = req.body;
-              console.log('ggg',req.body);
               const user_id = req.user.id;
               if(!amount || !customerId || !type){
                 return res.status(200).json({success: false, message: 'Amount, Customer ID and Type are required'});
@@ -556,16 +562,13 @@ const dairyProducts = async (req, res) => {
               status: 'active', // only active ones
             },
           });
-          console.log('Active entries to update:', activeEntries.length);
           
           // 2. If any active entries found, mark them inactive
           if (activeEntries.length > 0) {
-            console.log('Marking entries as inactive for customer ID:', customerId);
             const test = await MilkEntry.update(
               { status: 'inactive' },
               { where: { customer_id: customerId, status: 'active' } }
             );
-            console.log('Entries marked inactive:', test);
           }
           
           const activeProducts = await ProductTrx.findAll({
@@ -577,7 +580,6 @@ const dairyProducts = async (req, res) => {
                   { status: 'inactive' },
                   { where: { customer_id: customerId, status: 'active' } }
                 );
-                console.log(`Marked ${activeProducts.length} product transactions inactive for customer ${customerId}`);
               }
             
           const payment = await Payment.create({

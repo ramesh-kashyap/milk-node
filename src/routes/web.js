@@ -37,6 +37,9 @@ router.get("/milk-entries", authMiddleware, DairyController.getMilkEntries);
 router.post("/billreport", authMiddleware, DairyController.billReport);
 router.post("/create-payment", authMiddleware, DairyController.createPayment);
 router.post("/save/milk-entries", authMiddleware, userController.saveMilkEntry);
+router.post("/user-fat-snf-rates", authMiddleware, userController.saveFatSnfRates);
+router.get("/all-fat-snf-rates", authMiddleware, userController.getAllMilkRates);
+router.post("/updateCustomer", authMiddleware, userController.updateCustomer);
 // router.get("/getpayments", authMiddleware, userController.getPayments);
 // Mount the router on /api/auth so that /register becomes /api/auth/register
 const initWebRouter = (app) => {

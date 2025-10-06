@@ -6,7 +6,7 @@ module.exports = (sequelize) => {
     id: { type: DataTypes.BIGINT.UNSIGNED, autoIncrement: true, primaryKey: true },
     user_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false }, // seller or buyer
     customer_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
-    // invoice_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },   // optional link
+    invoice_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },   //optional link
     date: { type: DataTypes.DATEONLY, allowNull: false },
     type: { type: DataTypes.ENUM('pay','receive'), allowNull: false },  // dairy perspective
     mode: { type: DataTypes.ENUM('cash','upi','bank'), defaultValue: 'cash' },

@@ -10,6 +10,7 @@ module.exports = (sequelize) => {
     litres: { type: DataTypes.DECIMAL(8,2), allowNull: false },
     fat: { type: DataTypes.DECIMAL(4,2) },
     snf: { type: DataTypes.DECIMAL(4,2) },
+    status:  { type: DataTypes.STRING() },
     rate: { type: DataTypes.DECIMAL(6,2), allowNull: false },
     amount: { type: DataTypes.DECIMAL(10,2), allowNull: false },
     animal: { type: DataTypes.ENUM('cow','buffalo'), allowNull: false },

@@ -380,9 +380,7 @@ const userDetails = async (req, res) => {
             };
             const saveDefaultsrate = async (req, res) => {
             try {
-                const { bm_fat_rate, cm_fat_rate, bm_fixed_rate, cm_fixed_rate } = req.body;
-            
-                console.log(bm_fat_rate, cm_fat_rate, bm_fixed_rate, cm_fixed_rate);
+                const { bm_fat_rate, cm_fat_rate, bm_fixed_rate, cm_fixed_rate } = req.body;        
                 const updates = [
                   { animal: "buffalo", basis: "fat",  fat_rate: bm_fat_rate },
                   { animal: "buffalo", basis: "rate", fixed_rate: bm_fixed_rate },
@@ -408,7 +406,153 @@ const userDetails = async (req, res) => {
                 return res.status(500).json({ status: false, message: "Failed to save rates" });
               }
             };
+           const saveFatSnfRates = async (req, res) => {
+              try {
+                const {
+                  buffalo_fat_rate,
+                  buffalo_snf_rate,
+                  cow_fat_rate,
+                  cow_snf_rate,
+                  buffalo_fixed_rate,
+                  cow_fixed_rate,
+                } = req.body;
+            
+            
+                // Utility to update only if value is provided
+                const updateRate = async (animal, basis, fatRate, snfRate, fixedRate) => {
+                  const row = await MilkRate.findOne({ where: { animal, basis } });
+                  if (!row) return 'not_found';
+            
+                  const updates = {};
+                  if (fatRate !== undefined && fatRate !== null) updates.fat_rate = fatRate;
+                  if (snfRate !== undefined && snfRate !== null) updates.snf_rate = snfRate;
+                  if (fixedRate !== undefined && fixedRate !== null) updates.fixed_rate = fixedRate;
+            
+                  if (Object.keys(updates).length > 0) {
+                    await row.update(updates);
+                    return 'updated';
+                  }
+            
+                  return 'no_change';
+                };
+            
+                await updateRate('buffalo', 'fat_snf', buffalo_fat_rate, buffalo_snf_rate, buffalo_fixed_rate);
+                await updateRate('cow', 'fat_snf', cow_fat_rate, cow_snf_rate, cow_fixed_rate);
+            
+                return res.json({
+                  status: true,
+                  message: 'Rates updated successfully',
+                });
+              } catch (err) {
+                console.error('Save Fat/SNF Error:', err);
+                return res.status(500).json({
+                  status: false,
+                  message: 'Failed to save rates',
+                });
+              }
+            };
+            
+           const getAllMilkRates = async (req, res) => {
+              try {
+                const rows = await MilkRate.findAll({
+                  order: [['updated_at', 'DESC'], ['created_at', 'DESC']],
+                });
+                const data = {};            
+                for (const r of rows) {
+                  const animal = r.animal; // buffalo | cow
+                  const basis = r.basis;   // rate | fat | fat_snf            
+                  if (!data[animal]) data[animal] = {};
+                  if (!data[animal][basis]) data[animal][basis] = [];
+            
+                  data[animal][basis].push({
+                    fixed_rate: r.fixed_rate !== null ? Number(r.fixed_rate) : null,
+                    fat_rate:   r.fat_rate   !== null ? Number(r.fat_rate) : null,
+                    snf_rate:   r.snf_rate   !== null ? Number(r.snf_rate) : null,
+                    created_at: r.created_at,
+                    updated_at: r.updated_at,
+                  });
+                }
+            
+                return res.status(200).json({ status: true, data });
+              } catch (err) {
+                console.error('getAllMilkRates error:', err);
+                return res.status(500).json({ status: false, message: 'Failed to load rates' });
+              }
+            };
 
 
+            const updateCustomer = async (req, res) => {
+                        try {
+                          const { name, code ,cowEnabled ,buffaloEnabled,cowValue,buffaloValue,basis} = req.body;
+                      
+                          // Parse and validate input with Zod
+                        
+                      
+                        
+                          // Find the customer by ID (or code)
+                          const customer = await Customer.findOne({
+                            where: { code: code }
+                          });
+                      
+                          if (!customer) {
+                            return res.status(200).json({
+                              status: false,
+                              message: "Customer not found",
+                            });
+                          }
+                      
+                          // ✅ Pre-check business rules
+                          if (buffaloEnabled === null) {
+                            return res.status(200).json({
+                              status: false,
+                              message: "Buffalo value required when enabled",
+                            });
+                          }
+                      
+                          if (cowEnabled === null) {
+                            return res.status(200).json({
+                              status: false,
+                              message: "Cow value required when enabled",
+                            });
+                          }
+                      
+                          let cowEnableds = 0;
+                          let buffaloEnableds =0;
+                      
+                          if (cowEnabled) {
+                            cowEnableds = 1;
+                          }
+                      
+                          if (buffaloEnabled) {
+                            buffaloEnableds = 1;
+                          }
+                      
+                          // ✅ Update customer
+                          await customer.update({
+                            basis: basis, 
+                            buffaloEnabled: buffaloEnableds,
+                            buffaloValue: parseDecimalOrNull(buffaloValue) ?? null, 
+                            cowEnabled: cowEnableds,
+                            cowValue: parseDecimalOrNull(cowValue) ?? null, 
+                          });
+                      
+                          return res.status(200).json({
+                            status: true,
+                            message: "Customer updated successfully",
+                            customer,
+                          });
+                      
+                        } catch (err) {
+                        console.error(err);
+                    updateCustomer
+                        if (err.name === "ZodError") {
+                          return res.status(200).json({ error: err.flatten() });
+                        }
+                    
+                        return res.status(500).json({ error: "Internal server error" });
+                      }
+            };
+ 
+ 
 
-module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,saveMilkEntry,getDefaultsrates,saveDefaultsrate };
+module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,saveMilkEntry,getDefaultsrates,saveDefaultsrate, saveFatSnfRates ,getAllMilkRates, updateCustomer};
