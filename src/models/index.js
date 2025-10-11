@@ -17,6 +17,9 @@ const  MilkRate      = require('./milkRate')(sequelize);
 Customer.hasMany(MilkEntry,   { foreignKey: 'customer_id' });
 MilkEntry.belongsTo(Customer, { foreignKey: 'customer_id' });
 
+Customer.hasMany(ProductTrx,   { foreignKey: 'customer_id' });
+ProductTrx.belongsTo(Customer, { foreignKey: 'customer_id' });
+
 Customer.hasMany(Payment,     { foreignKey: 'customer_id' });
 Payment.belongsTo(Customer,   { foreignKey: 'customer_id' });
 

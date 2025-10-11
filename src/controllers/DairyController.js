@@ -10,53 +10,64 @@ const dairyReport = async (req, res) => {
     if (!user) {
       return res.status(200).json({ status: false, message: "User not Found!" });
     }
-    const today = new Date().toISOString().split("T")[0]; 
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     // 👉 1. Today’s total
-    const todayTotals = await MilkEntry.findOne({
-      attributes: [
-        [fn("SUM", col("litres")), "litres"],
-        [fn("SUM", col("amount")), "amount"]
-      ],
-      where: {
-        customer_id: user.id,   // ✅ FIXED
-        [Op.and]: sequelize.where(
-          fn("DATE", col("created_at")),
-          "=",
-          today
-        )
-      },
-      raw: true
-    });
-
-    // 👉 2. Monthly totals
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    const monthlyTotals = await MilkEntry.findAll({
+    const todayTotals = await MilkEntry.findAll({
   attributes: [
-    [fn("YEAR", col("created_at")), "year"],
-    [fn("MONTH", col("created_at")), "month"],
-    [fn("DATE_FORMAT", col("created_at"), "%M"), "month_name"],
-    "note",
-    [fn("SUM", col("litres")), "litres"],
-    [fn("SUM", col("amount")), "amount"],
+    [fn("SUM", col("MilkEntry.litres")), "litres"],
+    [fn("SUM", col("MilkEntry.amount")), "amount"],
+   
   ],
-  where: { customer_id: user.id },
-  group: ["year", "month", "note"],   // 👈 include note in group
-  order: [[literal("year"), "ASC"], [literal("month"), "ASC"]],
-  raw: true,
+  include: [
+    {
+      model: Customer,
+      attributes: [],        // we only need customer_type
+      where: { user_id: user.id } // filter by user id
+    }
+  ],
+  where: {
+    [Op.and]: [
+      // compare only the date part
+      sequelize.where(fn("DATE", col("MilkEntry.date")), "=", today)
+    ]
+  },
+  group: ["Customer.customer_type"], // group by customer type
+  raw: true
 });
+ 
+    console.log('Today Totals:', todayTotals);
+ 
+    // 👉 2. Monthly totals
+ const monthTotals = await MilkEntry.findAll({
+  attributes: [
+    [sequelize.fn('YEAR', sequelize.col('MilkEntry.created_at')), 'year'],
+    [sequelize.fn('MONTH', sequelize.col('MilkEntry.created_at')), 'month'],
+    [sequelize.fn('DATE_FORMAT', sequelize.col('MilkEntry.created_at'), '%M'), 'month_name'],
+    'note',
+    [sequelize.fn('SUM', sequelize.col('MilkEntry.litres')), 'litres'],
+    [sequelize.fn('SUM', sequelize.col('MilkEntry.amount')), 'amount'],
+  ],
+  include: [
+    {
+      model: Customer,
+      where: { user_id: user.id },
+    },
+  ],
+  group: ['year', 'month', 'note'],
+});
+ 
     res.json({
       status: true,
       date: today,
       today: todayTotals,
-      months: monthlyTotals
+      months: monthTotals
     });
   } catch (err) {
     console.error("Error in dairyReport:", err);
     res.status(500).json({ status: false, message: "Server Error" });
   }
 };
+ 
 
 const dairyPurchase = async (req, res) => {
   try {
@@ -66,7 +77,7 @@ const dairyPurchase = async (req, res) => {
     }
     // Fetch all entries for this user
     const entries = await MilkEntry.findAll({
-      // where: {customer_id: user.id, note: "Buy"},
+      where: { note: "Buy"},
       order: [['created_at', 'DESC']],
       include : [{
         model : Customer,
@@ -94,6 +105,7 @@ const dairySale = async (req, res) => {
       return res.status(200).json({ status: false, message: "User not Found!" });
     }
     const entries = await MilkEntry.findAll({
+      where: { note: "Sale"},
   order: [['created_at', 'DESC']], // latest entries first
   include: [
     {
@@ -216,8 +228,7 @@ const dairyProducts = async (req, res) => {
         product_unit: productUnit,
         product_price: price,
         stock,
-      });
- 
+      }); 
       return res.status(200).json({
         status: true,
         message: "Product added successfully",
@@ -377,13 +388,18 @@ const dairyProducts = async (req, res) => {
             });
 
             // Fetch transactions based on condition
-            const products = await Transaction.findAll({
+            const payments = await Transaction.findAll({
+              where: whereCondition,
+              raw: true,
+            });
+            const products = await ProductTrx.findAll({
               where: whereCondition,
               raw: true,
             });
             return res.status(200).json({
               success: true,
               customers,
+              payments,
               products,
               message: "Data fetched successfully!",
             });
@@ -501,51 +517,151 @@ const dairyProducts = async (req, res) => {
               }
             };
 
-           const billReport = async (req, res) => {
-              try {
-                const { from, to } = req.body;
-                const user_id = req.user.id;
-                if (!user_id) {
-                  return res.status(401).json({ success: false, message: "Unauthorized User" });
-                }
-                const whereClause = { user_id };
+          const billReport = async (req, res) => {
+            try {
+              const { from, to } = req.body;
+              const user_id = req.user.id;
+              if (!user_id) {
+                return res.status(401).json({ success: false, message: "Unauthorized User" });
+              }
+              // ------------------ DATE FILTER ------------------
+              const dateFilter = from && to ? { [Op.between]: [from, to] } : undefined;
 
-                if (from && to) {
-                  whereClause.date = {
-                    [Op.between]: [from, to],  // 👈 filter by date range
+              // ------------------ PAYMENTS ------------------
+              const paymentWhere = { user_id };
+              if (dateFilter) paymentWhere.date = dateFilter;
+
+              const payments = await Payment.findAll({
+                attributes: ["customer_id", [fn("SUM", col("amount")), "totalAmount"]],
+                where: paymentWhere,
+                include: [{
+                  model: Customer,
+                  attributes: ["id", "name", "code", "customerType"],
+                  where: { user_id },
+                }],
+                group: ["customer_id", "Customer.id"],
+                raw: true,
+              });
+
+              // ------------------ MILK ENTRIES ------------------
+              const milkWhere = {};
+              if (dateFilter) milkWhere.date = dateFilter;
+
+              const milkData = await MilkEntry.findAll({
+                attributes: ["customer_id", "note", [fn("SUM", col("amount")), "totalMilk"]],
+                where: milkWhere,
+                include: [{
+                  model: Customer,
+                  attributes: ["id", "name", "code", "customerType"],
+                  where: { user_id },
+                }],
+                group: ["customer_id", "note", "Customer.id"],
+                raw: true,
+              });
+
+              // ------------------ PRODUCT TRANSACTIONS ------------------
+              const productWhere = { user_id };
+              if (dateFilter) productWhere.date = dateFilter;
+
+              const productData = await ProductTrx.findAll({
+                attributes: ["customer_id", "t_type", [fn("SUM", col("amount")), "totalAmount"]],
+                where: productWhere,
+                include: [{
+                  model: Customer,
+                  attributes: ["id", "name", "code", "customerType"],
+                  where: { user_id },
+                }],
+                group: ["customer_id", "t_type", "Customer.id"],
+                raw: true,
+              });
+
+              // ------------------ COMBINE LOGIC ------------------
+              const report = {};
+
+              const ensureCustomer = (item) => {
+                const id = item["Customer.id"];
+                if (!report[id]) {
+                  report[id] = {
+                    customer_id: id,
+                    code: item["Customer.code"],
+                    name: item["Customer.name"],
+                    type: item["Customer.customerType"], // "Seller" or "Purchaser"
+                    milk_amount: 0,
+                    product_purchase: 0,
+                    product_sale: 0,
+                    payment: 0,
                   };
                 }
+                return report[id];
+              };
 
-                const payments = await Payment.findAll({
-                  attributes: [
-                    "customer_id",
-                    "type",
-                    [fn("SUM", col("amount")), "totalAmount"],
-                  ],
-                  where: whereClause,
-                  include: [
-                    {
-                      model: Customer,
-                      attributes: ["id", "name", "code", "customerType"],
-                      where: { user_id },
-                    },
-                  ],
-                  group: ["customer_id", "type", "Customer.id"],
-                  raw: true,
-                });
+              // ---- Milk ----
+              milkData.forEach(item => {
+                const entry = ensureCustomer(item);
+                const amt = parseFloat(item.totalMilk || 0);
+                if (item.note === "Sell") entry.milk_amount += amt; // Seller sold milk
+                if (item.note === "Buy") entry.milk_amount += amt;  // Purchaser bought milk
+              });
 
-                return res.status(200).json({
-                  success: true,
-                  data: payments,
-                });
-              } catch (e) {
-                console.error(e);
-                return res.status(500).json({
-                  success: false,
-                  message: "Server Error",
-                });
-              }
-            };
+              // ---- Product ----
+              productData.forEach(item => {
+                const entry = ensureCustomer(item);
+                const amt = parseFloat(item.totalAmount || 0);
+                if (item.t_type === "Purchase") entry.product_purchase += amt;
+                if (item.t_type === "Sell") entry.product_sale += amt;
+              });
+
+              // ---- Payments ----
+              payments.forEach(item => {
+                const entry = ensureCustomer(item);
+                const amt = parseFloat(item.totalAmount || 0);
+                entry.payment += amt;
+              });
+
+              // ------------------ FINAL CALCULATIONS ------------------
+              const result = Object.values(report).map(r => {
+                let due = 0, product = 0, total = 0;
+
+                if (r.type === "Seller") {
+                  due = (r.milk_amount + r.product_purchase) - r.payment;
+                  product = r.product_sale;
+                  total = (r.milk_amount + r.product_purchase + r.product_sale) - r.payment;
+                } else if (r.type === "Purchaser") {
+                  due = (r.milk_amount + r.product_sale) - r.payment;
+                  product = r.product_purchase;
+                  total = (r.milk_amount + r.product_sale - r.product_purchase) - r.payment;
+                }
+
+                return {
+                  account_name: r.name,
+                  payment: r.payment.toFixed(2),
+                  due: due.toFixed(2),
+                  product: product.toFixed(2),
+                  total: total.toFixed(2),
+                  type: r.type,
+                };
+              });
+
+              // Separate sellers and purchasers (optional)
+              const sellers = result.filter(r => r.type === "Seller");
+              const purchasers = result.filter(r => r.type === "Purchaser");
+
+              return res.status(200).json({
+                success: true,
+                sellers,
+                purchasers,
+                all: result, // optional if you want combined output
+              });
+
+            } catch (e) {
+              console.error(e);
+              return res.status(500).json({
+                success: false,
+                message: "Server Error",
+                error: e.message,
+              });
+            }
+          };
            
  
            const createPayment = async (req,res) =>{
