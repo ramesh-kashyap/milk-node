@@ -7,7 +7,6 @@ const { customerCreateSchema,customerListSchema } = require('../validators/custo
 const  getUserDetails = async (req, res) => {
   try {
     const user = req.user;
-
     if (!user) {
       return res.status(200).json({
         status: false,
@@ -48,6 +47,7 @@ function parseDecimalOrNull(v) {
 // CREATE
 const  addCustomer = async (req, res) => {
   try {
+    // console.log(req.body);
       const user = req.user;
 
       const data = customerCreateSchema.parse(req.body);
@@ -308,50 +308,64 @@ const userDetails = async (req, res) => {
                   }
                 };
               const saveMilkEntry = async (req, res) => {
-              try {
-                /**
-                 * Expected body (from your Flutter payload):
-                 * {
-                 *   date: "2025-09-10",
-                 *   session: "AM"|"PM",
-                 *   customer_id: 123,
-                 *   litres: 10.5,
-                 *   fat: 7.5,
-                 *   rate: 62.5,
-                 *   amount: 656.25,
-                 *   animal: "buffalo"|"cow",
-                 *   basis: "fat"|"rate"|"fat_snf",
-                 *   zero: false,
-                 *   note: "optional"
-                 * }
-                 */
-                const {customer_id, date, session, litres, fat, rate, amount, animal, basis, zero, note} = req.body;
-            
-                if (!customer_id || !date || !session || !animal || !basis) {
-                  return res.status(400).json({ status: false, message: 'Missing required fields' });
-                }
-                const entry = await MilkEntry.create({
-                  customer_id,
-                  date,
-                  session,
-                  litres,
-                  fat,
-                  rate,
-                  amount,
-                  animal,
-                  note: note ?? null,
-                });
-            
-                return res.status(200).json({
-                  status: true,
-                  message: 'Milk entry saved',
-                  data: entry,
-                });
-              } catch (err) {
-                console.error('saveMilkEntry error:', err);
-                return res.status(500).json({ status: false, message: 'Server error' });
-              }
-            };
+                  console.log('saveMilkEntry body:', req.body);
+                  try {
+                    /**
+                    * Expected body (from your Flutter payload):
+                    * {
+                    *   date: "2025-09-10",
+                    *   session: "AM"|"PM",
+                    *   customer_id: 123,
+                    *   litres: 10.5,
+                    *   fat: 7.5,
+                    *   rate: 62.5,
+                    *   amount: 656.25,
+                    *   animal: "buffalo"|"cow",
+                    *   basis: "fat"|"rate"|"fat_snf",
+                    *   zero: false,
+                    *   note: "optional"
+                    * }
+                    */
+                    const {
+                      customer_id, date, session, litres, fat,
+                      rate, amount, animal, basis, zero
+                    } = req.body;
+                  console.log('check:',req.body);
+                    if (!customer_id || !date || !session || !animal || !basis) {
+                      return res.status(400).json({ status: false, message: 'Missing required fields' });
+                    }
+                
+                    const getType = await Customer.findOne({ where: { id: customer_id },attributes: ['customer_type'],raw: true });
+                      console.log('Customer Type:', getType);
+                      let note = getType.customer_type === 'Seller' ? 'Sale':'Buy';
+                
+                    const entry = await MilkEntry.create({
+                      customer_id,
+                      date,
+                      session,
+                      litres,
+                      status: 'active', // default status
+                      fat,
+                      rate,
+                      amount,
+                      animal,
+                      note: note ?? null,
+                      // you can add `basis` and `zero` if you add those columns in milk_entries table
+                      // basis,
+                      // zero
+                    });
+                
+                    return res.status(200).json({
+                      status: true,
+                      message: 'Milk entry saved',
+                      data: entry,
+                    });
+                  } catch (err) {
+                    console.error('saveMilkEntry error:', err);
+                    return res.status(500).json({ status: false, message: 'Server error' });
+                  }
+                };
+ 
             const getDefaultsrates = async (req, res) => {
               try {
                 const rows = await MilkRate.findAll({

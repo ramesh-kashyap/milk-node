@@ -2,8 +2,8 @@ const { z } = require('zod');
 
 const basisEnum = z.enum(['fat','rate','fatSnf']);
 const typeEnum  = z.enum(['Seller','Purchaser']);
-const alertEnum = z.enum(['No Alerts','SMS','WhatsApp','Phone Call']);
-const slipEnum  = z.enum(['Default','Compact','Detailed','None']);
+const alertEnum = z.enum(['no_alerts', 'sms', 'whatsapp', 'phone_call']);
+const slipEnum  = z.enum(['default','compact','detailed','none']);
 
 const customerCreateSchema = z.object({
   code: z.string().min(1).max(32),

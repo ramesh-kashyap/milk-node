@@ -14,19 +14,19 @@ module.exports = (sequelize) => {
     cowEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     cowValue: { type: DataTypes.DECIMAL(6, 2) },
     alertMethod: {
-      type: DataTypes.ENUM('No Alerts', 'SMS', 'WhatsApp', 'Phone Call'),
+       type: DataTypes.ENUM('no_alerts', 'sms', 'whatsapp', 'phone_call'),
       allowNull: false,
-      defaultValue: 'No Alerts'
+      defaultValue: 'no_alerts'
     },
     active_status: {
       type: DataTypes.ENUM('0', '1',),
       allowNull: false,
-      defaultValue: 'No Alerts'
+      defaultValue: '1'
     },
     printSlip: {
-      type: DataTypes.ENUM('Default', 'Compact', 'Detailed', 'None'),
+      type: DataTypes.ENUM('default','compact','detailed','none'),
       allowNull: false,
-      defaultValue: 'Default'
+      defaultValue: 'default'
     },
   }, {
     tableName: 'customers',
