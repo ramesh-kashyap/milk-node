@@ -344,7 +344,7 @@ const userDetails = async (req, res) => {
                       date,
                       session,
                       litres,
-                      status: 'active', // default status
+                      status: 'active', 
                       fat,
                       rate,
                       amount,

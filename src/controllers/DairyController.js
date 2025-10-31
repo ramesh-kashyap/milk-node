@@ -359,57 +359,52 @@ const dairyProducts = async (req, res) => {
         }
       };
 
-      const transDetails = async (req, res) => {
-          try {
-            const userId = req.user.id;
-            if (!userId) {
-              return res.status(200).json({ success: false, message: "User Not Authenticated!" });
-            }
-            const user = await User.findOne({ where: { id: userId } });
-            if (!user) {
-              return res.status(200).json({ success: false, message: "User Not Found!" });
-            }
-            const { customerId, code, allEntries } = req.body; // 👈 from frontend
-            let whereCondition = { user_id: userId };
-
-            if (!allEntries) {
-              // If specific customer is selected
-              if (customerId) {
-                whereCondition.customer_id = customerId;
-              }
-              if (code) {
-                whereCondition.code = code;
-              }
-            }
-            // Else keep only user_id to fetch all
-
-            // Fetch customers for dropdown
-            const customers = await Customer.findAll({
-              where: { user_id: userId , active_status: 1},
-            });
-
-            // Fetch transactions based on condition
-            const payments = await Transaction.findAll({
-              where: whereCondition,
-              raw: true,
-            });
-            const products = await ProductTrx.findAll({
-              where: whereCondition,
-              raw: true,
-            });
-            return res.status(200).json({
-              success: true,
-              customers,
-              payments,
-              products,
-              message: "Data fetched successfully!",
-            });
-          } catch (error) {
-            console.error("transDetails error:", error);
-            return res.status(500).json({ success: false, message: "Internal Server Error" });
-          }
-        };
-
+            const transDetails = async (req, res) => {
+              console.log(req.body);
+                try {
+                  const userId = req.user.id;
+                  if (!userId) {
+                    return res.status(200).json({ success: false, message: "User Not Authenticated!" });
+                  }
+                  const user = await User.findOne({ where: { id: userId } });
+                  if (!user) {
+                    return res.status(200).json({ success: false, message: "User Not Found!" });
+                  }
+                  const { customerId, code, allEntries } = req.body; // 👈 from frontend
+                  let whereCondition = { user_id: userId };
+       
+                  if (!allEntries) {
+                    // If specific customer is selected
+                    if (customerId) {
+                      whereCondition.customer_id = customerId;
+                    }
+                    if (code) {
+                      whereCondition.code = code;
+                    }
+                  }
+                  // Else keep only user_id to fetch all
+       
+                  // Fetch customers for dropdown
+                  const customers = await Customer.findAll({
+                    where: { user_id: userId , active_status: 1},
+                  });
+       
+                  // Fetch transactions based on condition
+                  const products = await Transaction.findAll({
+                    where: whereCondition,
+                    raw: true,
+                  });
+                  return res.status(200).json({
+                    success: true,
+                    customers,
+                    products,
+                    message: "Data fetched successfully!",
+                  });
+                } catch (error) {
+                  console.error("transDetails error:", error);
+                  return res.status(500).json({ success: false, message: "Internal Server Error" });
+                }
+              };
 
        
           const getCode = async (req, res) => {
@@ -528,52 +523,51 @@ const dairyProducts = async (req, res) => {
               }
               // ------------------ DATE FILTER ------------------
               const dateFilter = from && to ? { [Op.between]: [from, to] } : undefined;
- 
               // ------------------ PAYMENTS ------------------
               const paymentWhere = { user_id };
               if (dateFilter) paymentWhere.date = dateFilter;
  
              const payments = await Payment.findAll({
-  attributes: [
-    "customer_id",
-    // sum only payments of type 'receive'
-    [
-      fn(
-        "SUM",
-        literal(`
-          CASE
-            WHEN LOWER(TRIM(\`type\`)) = 'receive' THEN amount
-            ELSE 0
-          END
-        `)
-      ),
-      "totalReceive"
-    ],
-    // sum only payments of type 'pay'
-    [
-      fn(
-        "SUM",
-        literal(`
-          CASE
-            WHEN LOWER(TRIM(\`type\`)) = 'pay' THEN amount
-            ELSE 0
-          END
-        `)
-      ),
-      "totalPay"
-    ]
-  ],
-  where: paymentWhere,
-  include: [
-    {
-      model: Customer,
-      attributes: ["id", "name", "code", "customerType"],
-      where: { user_id },
-    }
-  ],
-  group: ["Payment.customer_id", "Customer.id"],
-  raw: true,
-});
+                attributes: [
+                  "customer_id",
+                  // sum only payments of type 'receive'
+                  [
+                    fn(
+                      "SUM",
+                      literal(`
+                        CASE
+                          WHEN LOWER(TRIM(\`type\`)) = 'receive' THEN amount
+                          ELSE 0
+                        END
+                      `)
+                    ),
+                    "totalReceive"
+                  ],
+                  // sum only payments of type 'pay'
+                  [
+                    fn(
+                      "SUM",
+                      literal(`
+                        CASE
+                          WHEN LOWER(TRIM(\`type\`)) = 'pay' THEN amount
+                          ELSE 0
+                        END
+                      `)
+                    ),
+                    "totalPay"
+                  ]
+                ],
+                where: paymentWhere,
+                include: [
+                  {
+                    model: Customer,
+                    attributes: ["id", "name", "code", "customerType"],
+                    where: { user_id },
+                  }
+                ],
+                group: ["Payment.customer_id", "Customer.id"],
+                raw: true,
+              });
 
 console.log('Payments Data:', payments);
 
@@ -725,15 +719,15 @@ console.log('Payments Data:', payments);
               // ------------------ FINAL CALCULATIONS ------------------
               const result = Object.values(report).map(r => {
                 // let due = 0, product = 0, total = 0;
-                console.log('Calculating for customer:', r);
-              console.log('  Milk Amount:', (Number(r.milk_amount) || 0).toFixed(2));;
+                //   console.log('Calculating for customer:', r);
+                // console.log('  Milk Amount:', (Number(r.milk_amount) || 0).toFixed(2));;
                 const totalBalance = r.milk_amount;
                 const totalDue = r.product_amount - totalBalance;
                 const netPayment = (Number(r.total_receive) - Number(r.total_pay)) - totalDue;
-                 console.log('  Total Balance:', totalBalance.toFixed(2));
-                console.log('  Product Amount:', r.product_amount.toFixed(2));
-                console.log('  Total Due:', totalDue.toFixed(2));
-                console.log('  Net Payment:', netPayment.toFixed(2));
+                //  console.log('  Total Balance:', totalBalance.toFixed(2));
+                // console.log('  Product Amount:', r.product_amount.toFixed(2));
+                // console.log('  Total Due:', totalDue.toFixed(2));
+                // console.log('  Net Payment:', netPayment.toFixed(2));
                 
                 // if (r.type === "Seller") {
                 //   due = (r.milk_amount + r.product_purchase) - r.payment;
