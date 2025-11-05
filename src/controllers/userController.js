@@ -3,6 +3,7 @@ const { QueryTypes ,Op } = require('sequelize');
 const bcrypt = require("bcryptjs");
 const { User,Customer,Payment,MilkRate ,MilkEntry } = require('../models');  // ✅ Correct way
 const { customerCreateSchema,customerListSchema } = require('../validators/customer.schema');
+const customer = require('../models/customer');
 
 const  getUserDetails = async (req, res) => {
   try {
@@ -365,7 +366,129 @@ const userDetails = async (req, res) => {
                     return res.status(500).json({ status: false, message: 'Server error' });
                   }
                 };
- 
+
+             const bulkEntryCustomer = async (req, res) => {
+              try{                
+                const userId = req.user?.id;
+                if (!userId) {
+                  return res.status(200).json({success:false, message:"! Unauthrised"});
+                }
+                 const customers = await Customer.findAll({where: { user_id: userId }, order: [['id', 'DESC']],});
+                //  console.log(customers);
+                if(!customers || customers.length === 0){
+                  return res.status(200).json({success:false, message: "Customers Not found"});
+                }
+                return res.status(200).json({success:true, customers:customers});
+
+              }
+              catch(error){
+               return res.status(200).json({success: false, message: "somthings wrong"});
+              }
+             }
+
+
+
+            const bulkEntry = async (req, res) => {
+              console.log("🧾 Incoming Body:", req.body);
+              try {
+                const { code, liters,  fat: inputFat, snf, session, note } = req.body;
+                const userId = req.user?.id;
+
+                if (!userId) {
+                  return res.status(200).json({ success: false, message: "Unauthorized" });
+                }
+
+                const customer = await Customer.findOne({ where: { code } });
+                if (!customer) {
+                  return res.status(200).json({ success: false, message: "Customer not found" });
+                }
+                // 🐄 Determine animal
+                let fat = inputFat;
+                let animal = "";
+                  if (customer.buffaloEnabled && customer.cowEnabled) {
+                    animal = "buffalo"; // default to buffalo if both are enabled
+                    fat = customer.buffaloValue;
+                  } else if (customer.buffaloEnabled) {
+                    animal = "buffalo";
+                    fat = customer.buffaloValue;
+                  } else if (customer.cowEnabled) {
+                    animal = "cow";
+                    fat = customer.cowValue;
+                  } else {
+                    return res.status(200).json({ success: false, message: "No animal enabled for this customer" });
+                  }
+                console.log(animal, customer.basis);
+                // 🧮 Get Milk Rate by animal and basis
+                const milkRate = await MilkRate.findOne({
+                  where: { animal, basis: customer.basis },
+                });
+                console.log(milkRate);
+                if (!milkRate) {
+                  return res.status(200).json({ success: false, message: "Milk rate not found" });                 
+                }
+                 
+                // 💰 Calculate rate and amount
+                let rate = 0;
+                let amount = 0;
+
+                switch (customer.basis.toLowerCase()) {
+                  case "rate":
+                    rate = customer.rate ?? milkRate.fixed_rate ?? 0;
+                    amount = parseFloat(liters) * rate;
+                    break;
+
+                  case "fat":
+                    rate = milkRate.fat_rate ?? 0;
+                    amount = parseFloat(liters) * rate;
+                    break;
+
+                  case "fatsnf":
+                    rate = milkRate.fat_rate + (milkRate.snf_rate ?? 0);
+                    amount =
+                      parseFloat(liters) * milkRate.fat_rate +
+                      (parseFloat(snf) || 0) * (milkRate.snf_rate || 0);
+                    break;
+
+                  default:
+                    rate = 0;
+                    amount = 0;
+                }
+                console.log(amount)
+                const data = {
+                customer_id: customer.id,
+                date: new Date().toISOString().split("T")[0],
+                session: session || "AM",
+                litres: liters,
+                fat: fat,
+                snf: snf ?? null,
+                rate: rate,
+                status: "Active",
+                amount: amount,
+                animal: animal,
+                note: note || "Sale",
+                created_at: new Date(),
+                updated_at: new Date(),
+              };
+                console.log(data);
+                // 🧾 Insert Milk Entry
+                const newEntry = await MilkEntry.create(data);
+
+                return res.status(200).json({
+                  success: true,
+                  message: "Milk entry saved successfully",
+                  data: newEntry,
+                });
+              } catch (error) {
+                console.error("❌ Error in bulkEntry:", error);
+                return res.status(200).json({
+                  success: false,
+                  message: "Something went wrong",
+                  error: error.message,
+                });
+              }
+            };
+
+
             const getDefaultsrates = async (req, res) => {
               try {
                 const rows = await MilkRate.findAll({
@@ -497,10 +620,8 @@ const userDetails = async (req, res) => {
 
             const updateCustomer = async (req, res) => {
                         try {
-                          const { name, code ,cowEnabled ,buffaloEnabled,cowValue,buffaloValue,basis} = req.body;
-                      
-                          // Parse and validate input with Zod
-                        
+                          const { name, code ,cowEnabled ,buffaloEnabled,cowValue,buffaloValue,basis} = req.body;                      
+                          // Parse and validate input with Zod                 
                       
                         
                           // Find the customer by ID (or code)
@@ -569,4 +690,4 @@ const userDetails = async (req, res) => {
  
  
 
-module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,saveMilkEntry,getDefaultsrates,saveDefaultsrate, saveFatSnfRates ,getAllMilkRates, updateCustomer};
+module.exports = { getUserDetails,addCustomer,getCustomerList,getUseron,onCustomer,userDetails,updateUserDetail,saveMilkEntry,getDefaultsrates,saveDefaultsrate, saveFatSnfRates ,getAllMilkRates, updateCustomer, bulkEntryCustomer, bulkEntry};

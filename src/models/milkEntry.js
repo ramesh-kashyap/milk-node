@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
     amount: { type: DataTypes.DECIMAL(10,2), allowNull: false },
     animal: { type: DataTypes.ENUM('cow','buffalo'), allowNull: false },
     note: { type: DataTypes.STRING(180) }
-  }, { tableName: 'milk_entries', underscored: true, timestamps: true });
+  }, { tableName: 'milk_entries', timestamps: false,});
  
 
   return MilkEntry;

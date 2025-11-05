@@ -108,7 +108,7 @@ const login = async (req, res) => {
       { id: user.id, phone: user.phone, role: user.role },
       process.env.JWT_SECRET, { expiresIn: '30d' }
     );
-
+    // console.log("thsi is the token",token);
     return res.status(200).json({
       message: 'Login successful!',
       status: true,
@@ -119,6 +119,7 @@ const login = async (req, res) => {
         role: user.role
       },
       token
+      
     });
 
   } catch (error) {
